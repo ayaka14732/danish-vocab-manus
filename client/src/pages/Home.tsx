@@ -1,6 +1,6 @@
-// Home.tsx — ADHD-friendly
-// Auto-hiding top bar. Vertically centered content. Pure black/white.
-// Auto mode: auto-reveal → auto-advance, adjustable speed, pausable.
+// Home.tsx — ADHD-friendly, responsive
+// Mobile: bottom tab bar + top utility bar
+// Desktop: single top bar (auto-hiding in flashcard mode)
 
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import {
@@ -30,12 +30,11 @@ const DIFFICULTY_LABELS: Record<FilterDifficulty, string> = {
   advanced: "Avanceret",
 };
 
-// Auto-mode speed presets (ms to show word before revealing, ms to show answer before advancing)
 const SPEED_PRESETS = [
-  { label: "1×", wordMs: 2000, answerMs: 2000 },
+  { label: "1×",   wordMs: 2000, answerMs: 2000 },
   { label: "1.5×", wordMs: 1400, answerMs: 1400 },
-  { label: "2×", wordMs: 1000, answerMs: 1000 },
-  { label: "3×", wordMs: 700,  answerMs: 700  },
+  { label: "2×",   wordMs: 1000, answerMs: 1000 },
+  { label: "3×",   wordMs: 700,  answerMs: 700  },
 ];
 
 const TABS: { id: Tab; label: string }[] = [
@@ -57,10 +56,10 @@ function shuffle<T>(arr: T[]): T[] {
 export default function Home() {
   const [tab, setTab] = useState<Tab>("flashcard");
   const [category, setCategory] = useState<FilterCategory>("all");
+  const [difficulty, setDifficulty] = useState<FilterDifficulty>("all");
   const [progress, setProgress] = useState<UserProgress>(loadProgress);
   const [cardIndex, setCardIndex] = useState(0);
   const [deck, setDeck] = useState(() => shuffle(VOCABULARY));
-  const [difficulty, setDifficulty] = useState<FilterDifficulty>("all");
   const [catOpen, setCatOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [headerVisible, setHeaderVisible] = useState(false);
@@ -69,9 +68,7 @@ export default function Home() {
   const [autoMode, setAutoMode] = useState(false);
   const [autoPaused, setAutoPaused] = useState(false);
   const [autoSpeedIdx, setAutoSpeedIdx] = useState(0);
-  // autoPhase: "word" = showing word, "answer" = showing answer
   const [autoPhase, setAutoPhase] = useState<"word" | "answer">("word");
-  // Progress bar 0..1 for current phase
   const [autoProgress, setAutoProgress] = useState(0);
 
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -89,7 +86,7 @@ export default function Home() {
     setCardIndex(0);
   }, [category, difficulty]);
 
-  // Auto-hide header
+  // Auto-hide header (desktop only)
   useEffect(() => {
     function handleMouseMove(e: MouseEvent) {
       if (e.clientY < 48) {
@@ -152,25 +149,20 @@ export default function Home() {
       const elapsed = performance.now() - autoStartRef.current;
       const p = Math.min(elapsed / autoDurationRef.current, 1);
       setAutoProgress(p);
-      if (p < 1) {
-        autoRafRef.current = requestAnimationFrame(tick);
-      }
+      if (p < 1) autoRafRef.current = requestAnimationFrame(tick);
     }
     autoRafRef.current = requestAnimationFrame(tick);
 
     autoTimer.current = setTimeout(() => {
       if (phase === "word") {
-        // Reveal answer
-        startAutoPhase("answer", autoDurationRef.current === duration ? speed.answerMs : speed.answerMs);
+        startAutoPhase("answer", speed.answerMs);
       } else {
-        // Advance to next card
         setCardIndex((i) => (i + 1) % deck.length);
         startAutoPhase("word", speed.wordMs);
       }
     }, duration);
   }, [speed, deck.length]);
 
-  // Start/stop auto mode
   useEffect(() => {
     if (!autoMode || autoPaused) {
       if (autoTimer.current) clearTimeout(autoTimer.current);
@@ -185,192 +177,146 @@ export default function Home() {
     };
   }, [autoMode, autoPaused, autoSpeedIdx, deck]);
 
-  // When auto mode is on, FlashCard should show revealed based on autoPhase
   const autoRevealed = autoMode && autoPhase === "answer";
-
   const knownCount = Object.values(progress.words).filter((w) => w.known).length;
   const catLabel = category === "all" ? "Alle" : CATEGORIES[category as WordCategory]?.label;
   const diffLabel = difficulty === "all" ? null : DIFFICULTY_LABELS[difficulty];
   const poolSize = filteredWords.length;
 
-  const showHeader = headerVisible || tab !== "flashcard";
+  // Desktop: auto-hide in flashcard mode
+  const showDesktopHeader = headerVisible || tab !== "flashcard";
+
+  // ── Filter dropdown (shared between mobile & desktop) ──
+  function FilterDropdown() {
+    return (
+      <div
+        className="rounded-xl overflow-hidden py-1"
+        style={{
+          background: "#242424",
+          border: "1px solid rgba(255,255,255,0.08)",
+          minWidth: "180px",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.7)",
+        }}
+      >
+        {/* Difficulty */}
+        <div className="px-4 pt-2 pb-1 text-xs" style={{ color: "rgba(255,255,255,0.2)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Niveau</div>
+        {(["all", "beginner", "intermediate", "advanced"] as FilterDifficulty[]).map((d) => {
+          const base = category === "all" ? VOCABULARY : VOCABULARY.filter((w) => w.category === category);
+          const count = d === "all" ? base.length : base.filter((w) => w.difficulty === d).length;
+          return (
+            <button key={d} onClick={() => { setDifficulty(d); setCatOpen(false); }}
+              className="w-full text-left px-4 py-2 text-sm transition-colors hover:bg-white/5"
+              style={{ color: difficulty === d ? "#FFFFFF" : "rgba(255,255,255,0.4)" }}>
+              {DIFFICULTY_LABELS[d]} <span className="float-right" style={{ color: "rgba(255,255,255,0.18)" }}>{count}</span>
+            </button>
+          );
+        })}
+        {/* Divider */}
+        <div style={{ height: "1px", background: "rgba(255,255,255,0.06)", margin: "4px 0" }} />
+        {/* Category */}
+        <div className="px-4 pt-2 pb-1 text-xs" style={{ color: "rgba(255,255,255,0.2)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Kategori</div>
+        <button onClick={() => { setCategory("all"); setCatOpen(false); }}
+          className="w-full text-left px-4 py-2 text-sm transition-colors hover:bg-white/5"
+          style={{ color: category === "all" ? "#FFFFFF" : "rgba(255,255,255,0.4)" }}>
+          Alle <span className="float-right" style={{ color: "rgba(255,255,255,0.18)" }}>{VOCABULARY.length}</span>
+        </button>
+        {(Object.entries(CATEGORIES) as [WordCategory, typeof CATEGORIES[WordCategory]][]).map(([key, cat]) => {
+          const count = VOCABULARY.filter((w) => w.category === key).length;
+          return (
+            <button key={key} onClick={() => { setCategory(key); setCatOpen(false); }}
+              className="w-full text-left px-4 py-2 text-sm transition-colors hover:bg-white/5"
+              style={{ color: category === key ? "#FFFFFF" : "rgba(255,255,255,0.4)" }}>
+              {cat.label} <span className="float-right" style={{ color: "rgba(255,255,255,0.18)" }}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#191919", color: "#FFFFFF" }}>
 
-      {/* ── Auto-hiding top bar ── */}
-      <div className="fixed top-0 left-0 right-0 h-12 z-40" style={{ pointerEvents: "none" }} />
+      {/* ════════════════════════════════════════
+          DESKTOP header (hidden on mobile via md:flex)
+          ════════════════════════════════════════ */}
+      <div className="fixed top-0 left-0 right-0 h-12 z-40 hidden md:block" style={{ pointerEvents: "none" }} />
 
       <header
-        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 py-3 transition-all duration-300"
+        className="fixed top-0 left-0 right-0 z-50 hidden md:flex items-center justify-between px-5 py-3 transition-all duration-300"
         style={{
           background: "rgba(25,25,25,0.95)",
           backdropFilter: "blur(8px)",
           borderBottom: "1px solid rgba(255,255,255,0.06)",
-          transform: showHeader ? "translateY(0)" : "translateY(-100%)",
-          opacity: showHeader ? 1 : 0,
+          transform: showDesktopHeader ? "translateY(0)" : "translateY(-100%)",
+          opacity: showDesktopHeader ? 1 : 0,
         }}
-        onMouseEnter={() => {
-          setHeaderVisible(true);
-          if (hideTimer.current) clearTimeout(hideTimer.current);
-        }}
-        onMouseLeave={() => {
-          hideTimer.current = setTimeout(() => setHeaderVisible(false), 1500);
-        }}
+        onMouseEnter={() => { setHeaderVisible(true); if (hideTimer.current) clearTimeout(hideTimer.current); }}
+        onMouseLeave={() => { hideTimer.current = setTimeout(() => setHeaderVisible(false), 1500); }}
       >
-        {/* App name */}
         <span className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.25)", fontFamily: "'Lora', serif" }}>
           Dansk Ordbog
         </span>
 
-        {/* Mode tabs */}
         <nav className="flex items-center gap-0.5">
           {TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
+            <button key={t.id} onClick={() => setTab(t.id)}
               className={cn("px-3.5 py-1.5 rounded-md text-sm transition-colors")}
-              style={
-                tab === t.id
-                  ? { background: "rgba(255,255,255,0.1)", color: "#FFFFFF", fontWeight: 600 }
-                  : { color: "rgba(255,255,255,0.3)" }
-              }
-            >
+              style={tab === t.id ? { background: "rgba(255,255,255,0.1)", color: "#FFFFFF", fontWeight: 600 } : { color: "rgba(255,255,255,0.3)" }}>
               {t.label}
             </button>
           ))}
         </nav>
 
-        {/* Right controls */}
         <div className="flex items-center gap-2">
-          {/* Auto mode toggle */}
           {tab === "flashcard" && (
             <div className="flex items-center gap-1.5">
-              {/* Speed selector — only visible in auto mode */}
               {autoMode && (
                 <div className="flex items-center gap-0.5">
                   {SPEED_PRESETS.map((s, i) => (
-                    <button
-                      key={s.label}
-                      onClick={() => setAutoSpeedIdx(i)}
+                    <button key={s.label} onClick={() => setAutoSpeedIdx(i)}
                       className="px-2 py-1 rounded text-xs transition-colors"
-                      style={
-                        autoSpeedIdx === i
-                          ? { background: "rgba(255,255,255,0.15)", color: "#FFFFFF" }
-                          : { color: "rgba(255,255,255,0.25)" }
-                      }
-                    >
+                      style={autoSpeedIdx === i ? { background: "rgba(255,255,255,0.15)", color: "#FFFFFF" } : { color: "rgba(255,255,255,0.25)" }}>
                       {s.label}
                     </button>
                   ))}
                 </div>
               )}
-
-              {/* Pause/resume — only in auto mode */}
               {autoMode && (
-                <button
-                  onClick={() => setAutoPaused((p) => !p)}
+                <button onClick={() => setAutoPaused((p) => !p)}
                   className="w-7 h-7 rounded-full flex items-center justify-center text-xs transition-colors hover:bg-white/10"
-                  style={{ color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.1)" }}
-                  title={autoPaused ? "Fortsæt" : "Pause"}
-                >
+                  style={{ color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.1)" }}>
                   {autoPaused ? "▶" : "⏸"}
                 </button>
               )}
-
-              {/* Auto toggle button */}
               <button
-                onClick={() => {
-                  setAutoMode((m) => !m);
-                  setAutoPaused(false);
-                  setAutoPhase("word");
-                }}
+                onClick={() => { setAutoMode((m) => !m); setAutoPaused(false); setAutoPhase("word"); }}
                 className="px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
-                style={
-                  autoMode
-                    ? { background: "rgba(255,255,255,0.15)", color: "#FFFFFF", border: "1px solid rgba(255,255,255,0.2)" }
-                    : { color: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.08)" }
-                }
-                title="Auto-afspilning"
-              >
+                style={autoMode
+                  ? { background: "rgba(255,255,255,0.15)", color: "#FFFFFF", border: "1px solid rgba(255,255,255,0.2)" }
+                  : { color: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.08)" }}>
                 Auto
               </button>
             </div>
           )}
 
-          {/* Help button */}
-          <button
-            onClick={() => setHelpOpen(true)}
+          <button onClick={() => setHelpOpen(true)}
             className="w-7 h-7 rounded-full flex items-center justify-center text-xs transition-colors hover:bg-white/10"
-            style={{ color: "rgba(255,255,255,0.25)", border: "1px solid rgba(255,255,255,0.1)" }}
-            title="Tastaturgenveje"
-          >
+            style={{ color: "rgba(255,255,255,0.25)", border: "1px solid rgba(255,255,255,0.1)" }}>
             ?
           </button>
 
-          {/* Category picker */}
           <div className="relative">
-            <button
-              onClick={() => setCatOpen((o) => !o)}
+            <button onClick={() => setCatOpen((o) => !o)}
               className="text-sm px-3 py-1.5 rounded-md transition-colors hover:bg-white/5"
-              style={{ color: "rgba(255,255,255,0.3)" }}
-            >
+              style={{ color: "rgba(255,255,255,0.3)" }}>
               {catLabel}{diffLabel ? ` · ${diffLabel}` : ""} <span style={{ color: "rgba(255,255,255,0.15)" }}>{poolSize}</span>
             </button>
-
             {catOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setCatOpen(false)} />
-                <div
-                  className="absolute right-0 top-full mt-1 z-20 rounded-xl overflow-hidden py-1"
-                  style={{
-                    background: "#242424",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    minWidth: "160px",
-                    boxShadow: "0 8px 32px rgba(0,0,0,0.7)",
-                  }}
-                >
-                  {/* Difficulty section */}
-                  <div className="px-4 pt-2 pb-1 text-xs" style={{ color: "rgba(255,255,255,0.2)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Niveau</div>
-                  {(["all", "beginner", "intermediate", "advanced"] as FilterDifficulty[]).map((d) => {
-                    const count = d === "all"
-                      ? (category === "all" ? VOCABULARY.length : VOCABULARY.filter((w) => w.category === category).length)
-                      : (category === "all" ? VOCABULARY : VOCABULARY.filter((w) => w.category === category)).filter((w) => w.difficulty === d).length;
-                    return (
-                      <button
-                        key={d}
-                        onClick={() => { setDifficulty(d); setCatOpen(false); }}
-                        className="w-full text-left px-4 py-2 text-sm transition-colors hover:bg-white/5"
-                        style={{ color: difficulty === d ? "#FFFFFF" : "rgba(255,255,255,0.4)" }}
-                      >
-                        {DIFFICULTY_LABELS[d]} <span className="float-right" style={{ color: "rgba(255,255,255,0.18)" }}>{count}</span>
-                      </button>
-                    );
-                  })}
-                  {/* Divider */}
-                  <div style={{ height: "1px", background: "rgba(255,255,255,0.06)", margin: "4px 0" }} />
-                  {/* Category section */}
-                  <div className="px-4 pt-2 pb-1 text-xs" style={{ color: "rgba(255,255,255,0.2)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Kategori</div>
-                  <button
-                    onClick={() => { setCategory("all"); setCatOpen(false); }}
-                    className="w-full text-left px-4 py-2 text-sm transition-colors hover:bg-white/5"
-                    style={{ color: category === "all" ? "#FFFFFF" : "rgba(255,255,255,0.4)" }}
-                  >
-                    Alle <span className="float-right" style={{ color: "rgba(255,255,255,0.18)" }}>{VOCABULARY.length}</span>
-                  </button>
-                  {(Object.entries(CATEGORIES) as [WordCategory, typeof CATEGORIES[WordCategory]][]).map(([key, cat]) => {
-                    const count = VOCABULARY.filter((w) => w.category === key).length;
-                    return (
-                      <button
-                        key={key}
-                        onClick={() => { setCategory(key); setCatOpen(false); }}
-                        className="w-full text-left px-4 py-2 text-sm transition-colors hover:bg-white/5"
-                        style={{ color: category === key ? "#FFFFFF" : "rgba(255,255,255,0.4)" }}
-                      >
-                        {cat.label} <span className="float-right" style={{ color: "rgba(255,255,255,0.18)" }}>{count}</span>
-                      </button>
-                    );
-                  })}
+                <div className="absolute right-0 top-full mt-1 z-20">
+                  <FilterDropdown />
                 </div>
               </>
             )}
@@ -378,19 +324,93 @@ export default function Home() {
         </div>
       </header>
 
-      {/* ── Content ── */}
+      {/* ════════════════════════════════════════
+          MOBILE top utility bar (visible on mobile only)
+          Shows only when not in flashcard mode, OR when header triggered
+          ════════════════════════════════════════ */}
+      <header
+        className="fixed top-0 left-0 right-0 z-50 flex md:hidden items-center justify-between px-4 py-2.5 transition-all duration-300"
+        style={{
+          background: "rgba(25,25,25,0.97)",
+          backdropFilter: "blur(8px)",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
+          transform: (headerVisible || tab !== "flashcard") ? "translateY(0)" : "translateY(-100%)",
+          opacity: (headerVisible || tab !== "flashcard") ? 1 : 0,
+        }}
+      >
+        <span className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.2)", fontFamily: "'Lora', serif" }}>
+          Dansk Ordbog
+        </span>
+
+        <div className="flex items-center gap-2">
+          {/* Auto controls — mobile */}
+          {tab === "flashcard" && (
+            <div className="flex items-center gap-1">
+              {autoMode && (
+                <>
+                  {SPEED_PRESETS.map((s, i) => (
+                    <button key={s.label} onClick={() => setAutoSpeedIdx(i)}
+                      className="px-1.5 py-1 rounded text-xs transition-colors"
+                      style={autoSpeedIdx === i ? { background: "rgba(255,255,255,0.15)", color: "#FFFFFF" } : { color: "rgba(255,255,255,0.25)" }}>
+                      {s.label}
+                    </button>
+                  ))}
+                  <button onClick={() => setAutoPaused((p) => !p)}
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-xs"
+                    style={{ color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                    {autoPaused ? "▶" : "⏸"}
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => { setAutoMode((m) => !m); setAutoPaused(false); setAutoPhase("word"); }}
+                className="px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
+                style={autoMode
+                  ? { background: "rgba(255,255,255,0.15)", color: "#FFFFFF", border: "1px solid rgba(255,255,255,0.2)" }
+                  : { color: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                Auto
+              </button>
+            </div>
+          )}
+
+          <button onClick={() => setHelpOpen(true)}
+            className="w-6 h-6 rounded-full flex items-center justify-center text-xs"
+            style={{ color: "rgba(255,255,255,0.25)", border: "1px solid rgba(255,255,255,0.1)" }}>
+            ?
+          </button>
+
+          {/* Filter button */}
+          <div className="relative">
+            <button onClick={() => setCatOpen((o) => !o)}
+              className="text-xs px-2.5 py-1.5 rounded-md transition-colors"
+              style={{ color: "rgba(255,255,255,0.35)", border: "1px solid rgba(255,255,255,0.1)" }}>
+              {catLabel}{diffLabel ? ` · ${diffLabel}` : ""} <span style={{ color: "rgba(255,255,255,0.15)" }}>{poolSize}</span>
+            </button>
+            {catOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setCatOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 z-20 max-h-[70vh] overflow-y-auto">
+                  <FilterDropdown />
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* ════════════════════════════════════════
+          CONTENT
+          ════════════════════════════════════════ */}
       <main
         className="flex-1 flex"
         style={
           tab === "flashcard"
-            ? { alignItems: "center", justifyContent: "center", minHeight: "100vh" }
-            : { paddingTop: "4rem" }
+            ? { alignItems: "center", justifyContent: "center", minHeight: "100vh", paddingBottom: "4rem" }
+            : { paddingTop: "4rem", paddingBottom: "5rem" }
         }
       >
-        <div
-          className="w-full px-6"
-          style={{ maxWidth: tab === "wordlist" || tab === "stats" ? "720px" : "680px", margin: "0 auto" }}
-        >
+        <div className="w-full px-4 md:px-6"
+          style={{ maxWidth: tab === "wordlist" || tab === "stats" ? "720px" : "680px", margin: "0 auto" }}>
           {tab === "flashcard" && currentWord && (
             <FlashCard
               word={currentWord}
@@ -402,35 +422,44 @@ export default function Home() {
               autoRevealed={autoRevealed}
             />
           )}
-          {tab === "quiz" && (
-            <QuizMode category={category} onComplete={handleQuizComplete} />
-          )}
-          {tab === "wordlist" && (
-            <WordList words={filteredWords} progress={progress.words} />
-          )}
-          {tab === "stats" && (
-            <StatsPanel progress={progress} />
-          )}
+          {tab === "quiz" && <QuizMode category={category} onComplete={handleQuizComplete} />}
+          {tab === "wordlist" && <WordList words={filteredWords} progress={progress.words} />}
+          {tab === "stats" && <StatsPanel progress={progress} />}
         </div>
       </main>
 
+      {/* ════════════════════════════════════════
+          MOBILE bottom tab bar
+          ════════════════════════════════════════ */}
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden items-center"
+        style={{
+          background: "rgba(25,25,25,0.97)",
+          backdropFilter: "blur(12px)",
+          borderTop: "1px solid rgba(255,255,255,0.06)",
+          paddingBottom: "env(safe-area-inset-bottom)",
+        }}
+      >
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className="flex-1 py-3 text-xs font-medium transition-colors"
+            style={tab === t.id ? { color: "#FFFFFF" } : { color: "rgba(255,255,255,0.3)" }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </nav>
+
       {/* ── Help dialog ── */}
       {helpOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
+        <div className="fixed inset-0 z-50 flex items-center justify-center"
           style={{ background: "rgba(0,0,0,0.75)" }}
-          onClick={() => setHelpOpen(false)}
-        >
-          <div
-            className="rounded-2xl p-8 w-full"
-            style={{
-              maxWidth: "360px",
-              background: "#242424",
-              border: "1px solid rgba(255,255,255,0.08)",
-              boxShadow: "0 24px 64px rgba(0,0,0,0.8)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
+          onClick={() => setHelpOpen(false)}>
+          <div className="rounded-2xl p-8 w-full mx-4"
+            style={{ maxWidth: "360px", background: "#242424", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 24px 64px rgba(0,0,0,0.8)" }}
+            onClick={(e) => e.stopPropagation()}>
             <h2 className="text-base font-semibold mb-6" style={{ color: "rgba(255,255,255,0.9)", fontFamily: "'Lora', serif" }}>
               Tastaturgenveje
             </h2>
@@ -452,26 +481,20 @@ export default function Home() {
                   ["1× / 2× / 3×", "Hastighed"],
                 ].map(([key, desc]) => (
                   <tr key={key}>
-                    <td style={{ width: "40%" }}>
-                      <kbd
-                        className="px-2.5 py-1 rounded text-xs font-mono"
-                        style={{
-                          background: "rgba(255,255,255,0.07)",
-                          border: "1px solid rgba(255,255,255,0.12)",
-                          color: "rgba(255,255,255,0.7)",
-                        }}
-                      >{key}</kbd>
+                    <td style={{ width: "44%" }}>
+                      <kbd className="px-2.5 py-1 rounded text-xs font-mono"
+                        style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.7)" }}>
+                        {key}
+                      </kbd>
                     </td>
                     <td className="text-sm" style={{ color: "rgba(255,255,255,0.45)" }}>{desc}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <button
-              onClick={() => setHelpOpen(false)}
+            <button onClick={() => setHelpOpen(false)}
               className="mt-8 w-full py-2.5 rounded-lg text-sm transition-colors hover:bg-white/10"
-              style={{ color: "rgba(255,255,255,0.35)", border: "1px solid rgba(255,255,255,0.08)" }}
-            >
+              style={{ color: "rgba(255,255,255,0.35)", border: "1px solid rgba(255,255,255,0.08)" }}>
               Luk
             </button>
           </div>
@@ -479,28 +502,47 @@ export default function Home() {
       )}
 
       {/* ── Bottom progress strip ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-40" style={{ height: autoMode ? "3px" : "1px" }}>
-        {/* Overall known progress */}
-        <div className="absolute inset-0" style={{ background: "rgba(255,255,255,0.05)" }}>
-          <div
-            className="h-full transition-all duration-700"
-            style={{
-              width: `${Math.round((knownCount / VOCABULARY.length) * 100)}%`,
-              background: "rgba(255,255,255,0.2)",
-            }}
-          />
+      <div className="fixed z-40 left-0 right-0" style={{ bottom: "calc(env(safe-area-inset-bottom) + 48px)", height: autoMode ? "3px" : "1px" }}
+        // On desktop, stick to very bottom
+      >
+        <div className="absolute inset-0 hidden md:block" style={{ bottom: "auto", top: 0, height: "100%" }} />
+      </div>
+
+      {/* Progress bar — desktop: very bottom, mobile: just above tab bar */}
+      <div
+        className="fixed left-0 right-0 z-40"
+        style={{
+          bottom: 0,
+          // On mobile, sit above the bottom tab bar (~48px)
+          height: autoMode ? "3px" : "1px",
+        }}
+      >
+        {/* Shift up on mobile */}
+        <div
+          className="absolute left-0 right-0"
+          style={{
+            bottom: "48px", // above mobile tab bar
+            height: "inherit",
+          }}
+        >
+          <div className="md:hidden h-full" style={{ background: "rgba(255,255,255,0.05)" }}>
+            <div className="h-full transition-all duration-700"
+              style={{ width: `${Math.round((knownCount / VOCABULARY.length) * 100)}%`, background: "rgba(255,255,255,0.2)" }} />
+            {autoMode && !autoPaused && (
+              <div className="absolute inset-0 origin-left"
+                style={{ width: `${autoProgress * 100}%`, background: autoPhase === "word" ? "rgba(255,255,255,0.5)" : "rgba(68,255,136,0.7)", transition: "none" }} />
+            )}
+          </div>
         </div>
-        {/* Auto mode phase progress overlay */}
-        {autoMode && !autoPaused && (
-          <div
-            className="absolute inset-0 origin-left"
-            style={{
-              width: `${autoProgress * 100}%`,
-              background: autoPhase === "word" ? "rgba(255,255,255,0.5)" : "rgba(68,255,136,0.7)",
-              transition: "none",
-            }}
-          />
-        )}
+        {/* Desktop: very bottom */}
+        <div className="hidden md:block h-full" style={{ background: "rgba(255,255,255,0.05)" }}>
+          <div className="h-full transition-all duration-700"
+            style={{ width: `${Math.round((knownCount / VOCABULARY.length) * 100)}%`, background: "rgba(255,255,255,0.2)" }} />
+          {autoMode && !autoPaused && (
+            <div className="absolute inset-0 origin-left"
+              style={{ width: `${autoProgress * 100}%`, background: autoPhase === "word" ? "rgba(255,255,255,0.5)" : "rgba(68,255,136,0.7)", transition: "none" }} />
+          )}
+        </div>
       </div>
     </div>
   );
