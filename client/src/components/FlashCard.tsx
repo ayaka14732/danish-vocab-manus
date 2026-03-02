@@ -1,11 +1,9 @@
 // FlashCard.tsx — ADHD-friendly
-// - Correct: green flash only
-// - Wrong: red flash only
-// - Fixed layout: word position never shifts when answer appears
+// Keyboard: Space = reveal, → = know, ← = don't know
+// Touch:    double-tap = reveal, swipe-right = know, swipe-left = don't know
 
 import { useState, useEffect, useRef } from "react";
 import { VocabWord } from "@/lib/vocabulary";
-import { cn } from "@/lib/utils";
 
 interface FlashCardProps {
   word: VocabWord;
@@ -24,6 +22,9 @@ const STREAK_MESSAGES: Record<number, string> = {
   30: "Legende!",
 };
 
+// Swipe hint: shows briefly after a swipe to confirm direction
+type SwipeHint = "right" | "left" | null;
+
 export default function FlashCard({
   word,
   onKnow,
@@ -33,13 +34,18 @@ export default function FlashCard({
 }: FlashCardProps) {
   const [revealed, setRevealed] = useState(false);
   const [streak, setStreak] = useState(0);
-  // flash: null | "correct" | "wrong" — only one at a time
   const [flash, setFlash] = useState<"correct" | "wrong" | null>(null);
   const [streakMsg, setStreakMsg] = useState<string | null>(null);
+  const [swipeHint, setSwipeHint] = useState<SwipeHint>(null);
+
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const msgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Remember last flash color so the fade-out doesn't switch to wrong color
+  const swipeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastFlashColor = useRef<string>("#44FF88");
+
+  // Touch tracking
+  const touchStart = useRef<{ x: number; y: number; time: number } | null>(null);
+  const lastTap = useRef<number>(0);
 
   // Reset card when word changes
   useEffect(() => {
@@ -65,6 +71,12 @@ export default function FlashCard({
     if (flashTimer.current) clearTimeout(flashTimer.current);
     setFlash(type);
     flashTimer.current = setTimeout(() => setFlash(null), 350);
+  }
+
+  function showSwipeHint(dir: SwipeHint) {
+    setSwipeHint(dir);
+    if (swipeTimer.current) clearTimeout(swipeTimer.current);
+    swipeTimer.current = setTimeout(() => setSwipeHint(null), 500);
   }
 
   function handleKnow() {
@@ -95,10 +107,96 @@ export default function FlashCard({
     }
   }
 
+  // ── Touch handlers ──
+  function handleTouchStart(e: React.TouchEvent) {
+    const t = e.touches[0];
+    touchStart.current = { x: t.clientX, y: t.clientY, time: Date.now() };
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (!touchStart.current) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStart.current.x;
+    const dy = t.clientY - touchStart.current.y;
+    const dt = Date.now() - touchStart.current.time;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+
+    // Double-tap: two taps within 300ms, minimal movement
+    if (absDx < 15 && absDy < 15 && dt < 250) {
+      const now = Date.now();
+      if (now - lastTap.current < 300) {
+        // Double-tap detected
+        lastTap.current = 0;
+        setRevealed(true);
+        speakWord();
+        return;
+      }
+      lastTap.current = now;
+      return;
+    }
+
+    // Swipe: horizontal movement > 60px, faster than 400ms, more horizontal than vertical
+    if (absDx > 60 && absDx > absDy * 1.5 && dt < 400) {
+      if (!revealed) {
+        // Reveal first on swipe if not yet revealed
+        setRevealed(true);
+        return;
+      }
+      if (dx > 0) {
+        // Swipe right → Kender
+        showSwipeHint("right");
+        handleKnow();
+      } else {
+        // Swipe left → Kender ikke
+        showSwipeHint("left");
+        handleDontKnow();
+      }
+    }
+
+    touchStart.current = null;
+  }
+
   const shortEnglish = word.english.split(";")[0].split(",")[0].trim();
 
   return (
-    <div className="flex flex-col items-center w-full">
+    <div
+      className="flex flex-col items-center w-full select-none"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* ── Flash overlay ── */}
+      <div
+        className="fixed inset-0 pointer-events-none"
+        style={{
+          opacity: flash ? 0.07 : 0,
+          background: lastFlashColor.current,
+          transition: flash ? "opacity 0.05s ease-in" : "opacity 0.3s ease-out",
+          zIndex: 50,
+        }}
+      />
+
+      {/* ── Swipe direction hint ── */}
+      {swipeHint && (
+        <div
+          className="fixed inset-0 flex items-center pointer-events-none"
+          style={{
+            justifyContent: swipeHint === "right" ? "flex-end" : "flex-start",
+            padding: "0 2rem",
+            zIndex: 51,
+          }}
+        >
+          <span
+            className="text-5xl font-bold"
+            style={{
+              color: swipeHint === "right" ? "#44FF88" : "#FF4444",
+              opacity: 0.6,
+            }}
+          >
+            {swipeHint === "right" ? "→" : "←"}
+          </span>
+        </div>
+      )}
 
       {/* ── Streak + counter row ── */}
       <div className="flex items-center justify-between w-full mb-8">
@@ -127,28 +225,16 @@ export default function FlashCard({
         </p>
       </div>
 
-      {/* ── Flash overlay ── */}
-      <div
-        className="fixed inset-0 pointer-events-none"
-        style={{
-          opacity: flash ? 0.07 : 0,
-          background: lastFlashColor.current,
-          transition: flash ? "opacity 0.05s ease-in" : "opacity 0.3s ease-out",
-          zIndex: 50,
-        }}
-      />
-
       {/* ── Fixed-height layout: word stays put regardless of answer ── */}
       <div
         className="flex flex-col items-center w-full"
         style={{ minHeight: "320px" }}
       >
-        {/* The word */}
+        {/* The word — tap to speak */}
         <button
           onClick={() => { speakWord(); setRevealed(true); }}
-          className="text-center hover:opacity-75 active:opacity-50 transition-opacity"
+          className="text-center active:opacity-50 transition-opacity"
           style={{ background: "none", border: "none", padding: 0 }}
-          title="Klik for at lytte"
         >
           <p
             className="font-bold leading-none tracking-tight"
@@ -204,8 +290,6 @@ export default function FlashCard({
           ) : null}
         </div>
       </div>
-
-
     </div>
   );
 }

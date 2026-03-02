@@ -276,6 +276,11 @@ export default function Home() {
                   ["→", "Kender"],
                   ["←", "Kender ikke"],
                   ["Klik på ordet", "Udtale"],
+                  ["―――", ""],
+                  ["Dobbelttryk", "Vis svar"],
+                  ["Stryg højre", "Kender"],
+                  ["Stryg venstre", "Kender ikke"],
+                  ["Tryk på ordet", "Udtale"],
                 ].map(([key, desc]) => (
                   <tr key={key}>
                     <td style={{ width: "40%" }}>
