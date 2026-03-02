@@ -163,6 +163,16 @@ export default function FlashCard({
 
   const shortEnglish = word.english.split(";")[0].split(",")[0].trim();
 
+  // Dynamic font size based on word length to prevent overflow on mobile
+  function getWordFontSize(len: number): string {
+    if (len <= 6)  return "clamp(3rem, 12vw, 6rem)";
+    if (len <= 10) return "clamp(2.5rem, 9vw, 5rem)";
+    if (len <= 14) return "clamp(2rem, 7vw, 4rem)";
+    if (len <= 18) return "clamp(1.6rem, 5.5vw, 3.2rem)";
+    return "clamp(1.3rem, 4.5vw, 2.5rem)";
+  }
+  const wordFontSize = getWordFontSize(word.danish.length);
+
   return (
     <div
       className="flex flex-col items-center w-full select-none"
@@ -244,7 +254,7 @@ export default function FlashCard({
             className="font-bold leading-none tracking-tight"
             style={{
               fontFamily: "'Lora', serif",
-              fontSize: "clamp(3rem, 10vw, 6rem)",
+              fontSize: wordFontSize,
               color: "#FFFFFF",
               letterSpacing: "-0.02em",
             }}
