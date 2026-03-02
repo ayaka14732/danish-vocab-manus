@@ -20,21 +20,19 @@ import FlashCard from "@/components/FlashCard";
 import QuizMode from "@/components/QuizMode";
 import WordList from "@/components/WordList";
 import StatsPanel from "@/components/StatsPanel";
-import TypingMode from "@/components/TypingMode";
 import {
   BookOpen, Brain, List, BarChart2, Menu,
-  ChevronRight, Flame, Keyboard, Shuffle
+  ChevronRight, Flame, Shuffle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-type Tab = "flashcard" | "quiz" | "typing" | "wordlist" | "stats";
+type Tab = "flashcard" | "quiz" | "wordlist" | "stats";
 type FilterCategory = WordCategory | "all";
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode; desc: string }[] = [
   { id: "flashcard", label: "字卡學習", icon: <BookOpen size={17} />, desc: "翻轉字卡，認識單詞" },
   { id: "quiz",      label: "選擇測驗", icon: <Brain size={17} />,    desc: "四選一，測試記憶" },
-  { id: "typing",    label: "打字練習", icon: <Keyboard size={17} />, desc: "輸入中文，強化記憶" },
   { id: "wordlist",  label: "單詞列表", icon: <List size={17} />,     desc: "瀏覽所有單詞" },
   { id: "stats",     label: "學習統計", icon: <BarChart2 size={17} />, desc: "查看學習進度" },
 ];
@@ -314,9 +312,6 @@ export default function Home() {
             )}
             {tab === "quiz" && (
               <QuizMode category={category} onComplete={handleQuizComplete} />
-            )}
-            {tab === "typing" && (
-              <TypingMode category={category} onComplete={handleQuizComplete} />
             )}
             {tab === "wordlist" && (
               <WordList words={filteredWords} progress={progress.words} />
