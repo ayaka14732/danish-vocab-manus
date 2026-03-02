@@ -24,11 +24,21 @@ export default function FlashCard({
 }: FlashCardProps) {
   const [flipped, setFlipped] = useState(false);
   const [animClass, setAnimClass] = useState("");
+  const [noTransition, setNoTransition] = useState(false);
 
   // Reset flip state whenever the word changes
+  // Disable transition first so the card snaps to front instantly (no animation from back to front)
   useEffect(() => {
+    setNoTransition(true);
     setFlipped(false);
     setAnimClass("");
+    // Re-enable transition after the DOM has painted the reset state
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setNoTransition(false);
+      });
+    });
+    return () => cancelAnimationFrame(id);
   }, [word.id]);
 
   function handleFlip() {
@@ -86,7 +96,10 @@ export default function FlashCard({
         style={{ height: "320px" }}
         onClick={handleFlip}
       >
-        <div className={cn("card-flip", flipped && "flipped")}>
+        <div
+          className={cn("card-flip", flipped && "flipped")}
+          style={noTransition ? { transition: "none" } : undefined}
+        >
           {/* Front — Danish word */}
           <div className="card-face parchment-card rounded-2xl gold-border flex flex-col items-center justify-center p-8 cursor-pointer select-none shadow-2xl">
             <div className="absolute top-4 left-4 right-4 flex justify-between items-center">
