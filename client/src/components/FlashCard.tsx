@@ -80,6 +80,8 @@ export default function FlashCard({
   }
 
   function handleKnow() {
+    // Reset revealed BEFORE calling onKnow so the new word never shows the answer
+    setRevealed(false);
     const newStreak = streak + 1;
     setStreak(newStreak);
     triggerFlash("correct");
@@ -93,6 +95,8 @@ export default function FlashCard({
   }
 
   function handleDontKnow() {
+    // Reset revealed BEFORE calling onDontKnow so the new word never shows the answer
+    setRevealed(false);
     setStreak(0);
     triggerFlash("wrong");
     onDontKnow();
