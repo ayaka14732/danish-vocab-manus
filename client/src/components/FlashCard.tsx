@@ -130,7 +130,7 @@ export default function FlashCard({
         className="fixed inset-0 pointer-events-none transition-opacity duration-300"
         style={{
           opacity: flash ? 0.06 : 0,
-          background: flash === "correct" ? "#FFFFFF" : "#FF4444",
+          background: flash === "correct" ? "#44FF88" : "#FF4444",
           zIndex: 50,
         }}
       />
