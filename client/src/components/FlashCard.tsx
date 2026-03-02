@@ -2,7 +2,7 @@
 // Design: Academic Elegance — parchment card with 3D flip animation
 // Gold border, dark ink text, subtle paper texture background
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { VocabWord } from "@/lib/vocabulary";
 import { Volume2, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,12 @@ export default function FlashCard({
 }: FlashCardProps) {
   const [flipped, setFlipped] = useState(false);
   const [animClass, setAnimClass] = useState("");
+
+  // Reset flip state whenever the word changes
+  useEffect(() => {
+    setFlipped(false);
+    setAnimClass("");
+  }, [word.id]);
 
   function handleFlip() {
     setFlipped((f) => !f);
