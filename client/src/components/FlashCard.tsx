@@ -1,11 +1,11 @@
 // FlashCard.tsx
 // Design: Academic Elegance — parchment card with 3D flip animation
 // Gold border, dark ink text, subtle paper texture background
+// Front: Danish word | Back: Chinese (primary) + English (secondary)
 
 import { useState, useEffect } from "react";
-import { VocabWord } from "@/lib/vocabulary";
+import { VocabWord, CATEGORIES } from "@/lib/vocabulary";
 import { Volume2, RotateCcw } from "lucide-react";
-import { CATEGORIES } from "@/lib/vocabulary";
 import { cn } from "@/lib/utils";
 
 interface FlashCardProps {
@@ -28,12 +28,10 @@ export default function FlashCard({
   const [noTransition, setNoTransition] = useState(false);
 
   // Reset flip state whenever the word changes
-  // Disable transition first so the card snaps to front instantly (no animation from back to front)
   useEffect(() => {
     setNoTransition(true);
     setFlipped(false);
     setAnimClass("");
-    // Re-enable transition after the DOM has painted the reset state
     const id = requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         setNoTransition(false);
@@ -72,6 +70,9 @@ export default function FlashCard({
       window.speechSynthesis.speak(utt);
     }
   }
+
+  // Shorten long English for subtitle display
+  const shortEnglish = word.english.split(";")[0].split(",")[0].trim();
 
   return (
     <div className="flex flex-col items-center gap-6 w-full max-w-lg mx-auto">
@@ -133,15 +134,22 @@ export default function FlashCard({
             </div>
           </div>
 
-          {/* Back — English translation */}
+          {/* Back — Chinese (primary) + English (secondary) */}
           <div className="card-face card-face-back parchment-card rounded-2xl gold-border flex flex-col items-center justify-center p-8 cursor-pointer select-none shadow-2xl">
             <div className="absolute top-4 right-4">
               <RotateCcw size={14} style={{ color: "#9B8B6E" }} />
             </div>
 
-            <p className="text-3xl font-bold mb-3 text-center leading-snug" style={{ fontFamily: "'Lora', serif", color: "#1A1A0E" }}>
-              {word.english}
+            {/* Chinese — main answer */}
+            <p className="text-4xl font-bold mb-2 text-center" style={{ fontFamily: "'Noto Sans TC', sans-serif", color: "#1A1A0E" }}>
+              {word.chinese || word.english.split(";")[0].trim()}
             </p>
+
+            {/* English — subtitle */}
+            <p className="text-base text-center mb-3" style={{ color: "#5A4A2E", fontStyle: "italic" }}>
+              {shortEnglish}
+            </p>
+
             {word.pos && (
               <span
                 className="text-xs px-2 py-0.5 rounded-full"
@@ -188,7 +196,7 @@ export default function FlashCard({
       {/* Hint when not flipped */}
       {!flipped && (
         <p className="text-xs text-center" style={{ color: "rgba(255,255,255,0.3)" }}>
-          點擊卡片翻轉，查看英文翻譯
+          點擊卡片翻轉，查看中文翻譯
         </p>
       )}
     </div>

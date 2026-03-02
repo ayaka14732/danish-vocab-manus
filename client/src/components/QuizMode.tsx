@@ -1,6 +1,6 @@
 // QuizMode.tsx
 // Design: Academic Elegance — multiple choice quiz with parchment options
-// Correct = green glow, Incorrect = red glow, gold progress bar
+// Shows Danish word, user picks correct Chinese translation
 
 import { useState, useEffect, useCallback } from "react";
 import { VocabWord, VOCABULARY, WordCategory } from "@/lib/vocabulary";
@@ -14,7 +14,7 @@ interface QuizModeProps {
 
 interface QuizQuestion {
   word: VocabWord;
-  options: string[]; // English options
+  options: string[];
   correctIndex: number;
 }
 
@@ -27,12 +27,6 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-// Shorten long English translations for display
-function shortEnglish(en: string): string {
-  // Take only the first translation if multiple are separated by ;
-  return en.split(";")[0].split(",")[0].trim();
-}
-
 function buildQuestions(category: WordCategory | "all", count = 10): QuizQuestion[] {
   const pool =
     category === "all"
@@ -42,12 +36,11 @@ function buildQuestions(category: WordCategory | "all", count = 10): QuizQuestio
   const selected = shuffle(pool).slice(0, Math.min(count, pool.length));
 
   return selected.map((word) => {
-    const correct = shortEnglish(word.english);
-    // Build 4 options: 1 correct + 3 random wrong
+    const correct = word.chinese || word.english.split(";")[0].trim();
     const others = VOCABULARY.filter((w) => w.id !== word.id);
     const wrong = shuffle(others)
       .slice(0, 3)
-      .map((w) => shortEnglish(w.english));
+      .map((w) => w.chinese || w.english.split(";")[0].trim());
     const options = shuffle([correct, ...wrong]);
     const correctIndex = options.indexOf(correct);
     return { word, options, correctIndex };
@@ -167,7 +160,7 @@ export default function QuizMode({ category, onComplete }: QuizModeProps) {
         style={{ minHeight: "160px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}
       >
         <p className="text-xs mb-3 font-medium" style={{ color: "#9B8B6E" }}>
-          以下丹麥語的英文意思是？
+          以下丹麥語的中文意思是？
         </p>
         <p className="text-5xl font-bold mb-2" style={{ fontFamily: "'Lora', serif", color: "#1A1A0E" }}>
           {q.word.danish}

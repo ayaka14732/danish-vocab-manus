@@ -19,7 +19,8 @@ export default function WordList({ words, progress }: WordListProps) {
   const filtered = words.filter(
     (w) =>
       w.danish.toLowerCase().includes(search.toLowerCase()) ||
-      w.english.toLowerCase().includes(search.toLowerCase())
+      w.english.toLowerCase().includes(search.toLowerCase()) ||
+      (w.chinese && w.chinese.includes(search))
   );
 
   function speakWord(danish: string) {
@@ -43,7 +44,7 @@ export default function WordList({ words, progress }: WordListProps) {
       <div className="relative">
         <input
           type="text"
-          placeholder="搜尋丹麥語或英文..."
+          placeholder="搜尋丹麥語、中文或英文..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full px-4 py-2.5 rounded-xl text-sm outline-none transition-all"
@@ -112,9 +113,9 @@ export default function WordList({ words, progress }: WordListProps) {
                   {word.danish}
                 </p>
 
-                {/* Short English */}
-                <p className="text-sm shrink-0 max-w-[140px] truncate" style={{ color: "rgba(245,240,232,0.7)" }}>
-                  {shortEnglish(word.english)}
+                {/* Chinese (primary) */}
+                <p className="text-sm shrink-0 max-w-[140px] truncate font-medium" style={{ color: "#C9A84C" }}>
+                  {word.chinese || shortEnglish(word.english)}
                 </p>
 
                 {/* Speak */}
@@ -151,7 +152,12 @@ export default function WordList({ words, progress }: WordListProps) {
                       {word.difficulty === "beginner" ? "初級" : word.difficulty === "intermediate" ? "中級" : "高級"}
                     </span>
                   </div>
-                  <p className="text-sm" style={{ color: "rgba(245,240,232,0.85)" }}>
+                  {word.chinese && (
+                    <p className="text-base font-medium mb-1" style={{ color: "#C9A84C" }}>
+                      {word.chinese}
+                    </p>
+                  )}
+                  <p className="text-sm" style={{ color: "rgba(245,240,232,0.6)" }}>
                     {word.english}
                   </p>
                   {wp && (
