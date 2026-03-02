@@ -16,16 +16,16 @@ export interface VocabWord {
 }
 
 export const CATEGORIES: Record<WordCategory, { label: string; icon: string }> = {
-  basics:  { label: "基礎詞彙", icon: "📚" },
-  numbers: { label: "數字",     icon: "🔢" },
-  colors:  { label: "顏色",     icon: "🎨" },
-  food:    { label: "食物",     icon: "🍽️" },
-  family:  { label: "家庭",     icon: "👨‍👩‍👧" },
-  body:    { label: "身體",     icon: "🫀" },
-  nature:  { label: "自然",     icon: "🌿" },
-  travel:  { label: "旅行",     icon: "✈️" },
-  time:    { label: "時間",     icon: "🕐" },
-  phrases: { label: "常用語",   icon: "💬" },
+  basics:  { label: "Grundord",  icon: "📚" },
+  numbers: { label: "Tal",       icon: "🔢" },
+  colors:  { label: "Farver",    icon: "🎨" },
+  food:    { label: "Mad",       icon: "🍽️" },
+  family:  { label: "Familie",   icon: "👨‍👩‍👧" },
+  body:    { label: "Krop",      icon: "🫀" },
+  nature:  { label: "Natur",     icon: "🌿" },
+  travel:  { label: "Rejse",     icon: "✈️" },
+  time:    { label: "Tid",       icon: "🕐" },
+  phrases: { label: "Sætninger", icon: "💬" },
 };
 
 export interface WordProgress {

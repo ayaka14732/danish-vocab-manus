@@ -57,16 +57,16 @@ export default function StatsPanel({ progress }: StatsPanelProps) {
           {progressPct}%
         </p>
         <p className="mt-2 text-sm" style={{ color: "rgba(255,255,255,0.3)" }}>
-          已掌握 {knownWords} / {allWords} 個單詞
+          Kender {knownWords} / {allWords} ord
         </p>
       </div>
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: "已複習", value: reviewedWords },
-          { label: "正確率", value: `${accuracy}%` },
-          { label: "連續天數", value: progress.studyStreak },
+          { label: "Gennemgået", value: reviewedWords },
+          { label: "Nøjagtighed", value: `${accuracy}%` },
+          { label: "Dage i træk", value: progress.studyStreak },
         ].map((s) => (
           <div
             key={s.label}
@@ -81,7 +81,7 @@ export default function StatsPanel({ progress }: StatsPanelProps) {
 
       {/* Category breakdown */}
       <div className="flex flex-col gap-3">
-        <p className="text-xs" style={{ color: "rgba(255,255,255,0.25)" }}>分類進度</p>
+        <p className="text-xs" style={{ color: "rgba(255,255,255,0.25)" }}>Kategori-fremskridt</p>
         {(Object.keys(CATEGORIES) as WordCategory[]).map((cat) => (
           <CategoryBar key={cat} category={cat} progress={progress} />
         ))}
@@ -89,7 +89,7 @@ export default function StatsPanel({ progress }: StatsPanelProps) {
 
       {progress.lastStudyDate && (
         <p className="text-xs text-center" style={{ color: "rgba(255,255,255,0.18)" }}>
-          上次學習：{progress.lastStudyDate}
+          Sidst studeret: {progress.lastStudyDate}
         </p>
       )}
     </div>

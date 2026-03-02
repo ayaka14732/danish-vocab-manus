@@ -83,8 +83,8 @@ export default function QuizMode({ category, onComplete }: QuizModeProps) {
         >
           {pct}%
         </p>
-        <p style={{ color: "rgba(255,255,255,0.35)", fontSize: "0.875rem" }}>
-          {correct} / {questions.length} 題答對
+        <p className="mt-2 text-sm" style={{ color: "rgba(255,255,255,0.35)", fontSize: "0.875rem" }}>
+          {correct} / {questions.length} rigtige
         </p>
         <button
           onClick={init}
@@ -95,7 +95,7 @@ export default function QuizMode({ category, onComplete }: QuizModeProps) {
             color: "#FFFFFF",
           }}
         >
-          再測一次
+          Prøv igen
         </button>
       </div>
     );
@@ -108,8 +108,8 @@ export default function QuizMode({ category, onComplete }: QuizModeProps) {
 
       {/* Counter */}
       <p className="text-right text-xs tabular-nums" style={{ color: "rgba(255,255,255,0.18)" }}>
-        {current + 1} / {questions.length}
-      </p>
+          {current + 1} / {questions.length}
+        </p>
 
       {/* Question — the word, large */}
       <div className="text-center py-6">

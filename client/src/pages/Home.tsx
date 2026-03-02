@@ -22,10 +22,10 @@ type Tab = "flashcard" | "quiz" | "wordlist" | "stats";
 type FilterCategory = WordCategory | "all";
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: "flashcard", label: "字卡" },
-  { id: "quiz",      label: "測驗" },
-  { id: "wordlist",  label: "詞表" },
-  { id: "stats",     label: "統計" },
+  { id: "flashcard", label: "Kort" },
+  { id: "quiz",      label: "Quiz" },
+  { id: "wordlist",  label: "Ordliste" },
+  { id: "stats",     label: "Statistik" },
 ];
 
 function shuffle<T>(arr: T[]): T[] {
@@ -99,11 +99,11 @@ export default function Home() {
   }
 
   function handleQuizComplete(correct: number, total: number) {
-    toast.success(`答對 ${correct}/${total} 題`);
+    toast.success(`${correct}/${total} rigtige`);
   }
 
   const knownCount = Object.values(progress.words).filter((w) => w.known).length;
-  const catLabel = category === "all" ? "全部" : CATEGORIES[category as WordCategory]?.label;
+  const catLabel = category === "all" ? "Alle" : CATEGORIES[category as WordCategory]?.label;
   const poolSize = filteredWords.length;
 
   // For non-flashcard tabs, show header always
@@ -183,7 +183,7 @@ export default function Home() {
                   className="w-full text-left px-4 py-2 text-sm transition-colors hover:bg-white/5"
                   style={{ color: category === "all" ? "#FFFFFF" : "rgba(255,255,255,0.4)" }}
                 >
-                  全部 <span className="float-right" style={{ color: "rgba(255,255,255,0.18)" }}>{VOCABULARY.length}</span>
+                  Alle <span className="float-right" style={{ color: "rgba(255,255,255,0.18)" }}>{VOCABULARY.length}</span>
                 </button>
                 {(Object.entries(CATEGORIES) as [WordCategory, typeof CATEGORIES[WordCategory]][]).map(([key, cat]) => {
                   const count = VOCABULARY.filter((w) => w.category === key).length;

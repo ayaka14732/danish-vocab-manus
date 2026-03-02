@@ -38,7 +38,7 @@ export default function WordList({ words, progress }: WordListProps) {
       {/* Search */}
       <input
         type="text"
-        placeholder="搜尋..."
+        placeholder="Søg..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="w-full px-4 py-2.5 rounded-lg text-sm outline-none"
@@ -50,7 +50,7 @@ export default function WordList({ words, progress }: WordListProps) {
       />
 
       <p className="text-xs" style={{ color: "rgba(255,255,255,0.2)" }}>
-        {filtered.length} 個單詞
+        {filtered.length} ord
       </p>
 
       {/* Rows */}
@@ -108,7 +108,7 @@ export default function WordList({ words, progress }: WordListProps) {
                       className="text-xs hover:underline"
                       style={{ color: "rgba(255,255,255,0.2)", background: "none", border: "none" }}
                     >
-                      朗讀
+                      Lyt
                     </button>
                     <a
                       href={`https://en.wiktionary.org/wiki/${encodeURIComponent(word.danish)}`}
@@ -136,7 +136,7 @@ export default function WordList({ words, progress }: WordListProps) {
 
       {filtered.length === 0 && (
         <p className="text-center py-12 text-sm" style={{ color: "rgba(255,255,255,0.2)" }}>
-          找不到符合的單詞
+          Ingen ord fundet
         </p>
       )}
     </div>

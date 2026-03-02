@@ -15,12 +15,12 @@ interface FlashCardProps {
 }
 
 const STREAK_MESSAGES: Record<number, string> = {
-  3:  "不錯！",
-  5:  "繼續！",
-  10: "太強了！",
-  15: "勢不可擋！",
-  20: "完美！",
-  30: "傳奇！",
+  3:  "Godt!",
+  5:  "Fortsæt!",
+  10: "Fantastisk!",
+  15: "Uovervindelig!",
+  20: "Perfekt!",
+  30: "Legende!",
 };
 
 export default function FlashCard({
@@ -140,7 +140,7 @@ export default function FlashCard({
         onClick={() => { speakWord(); setRevealed(true); }}
         className="text-center transition-opacity hover:opacity-75 active:opacity-50"
         style={{ background: "none", border: "none", padding: 0 }}
-        title="點擊朗讀"
+        title="Klik for at lytte"
       >
         <p
           className="font-bold leading-none tracking-tight"
@@ -192,7 +192,7 @@ export default function FlashCard({
           </>
         ) : (
           <p className="text-sm select-none" style={{ color: "rgba(255,255,255,0.18)" }}>
-            Space
+            Mellemrum
           </p>
         )}
       </div>
@@ -213,7 +213,7 @@ export default function FlashCard({
             color: "rgba(255,255,255,0.35)",
           }}
         >
-          ← 不認識
+          ← Kender ikke
         </button>
         <button
           onClick={handleKnow}
@@ -224,7 +224,7 @@ export default function FlashCard({
             color: "rgba(255,255,255,0.85)",
           }}
         >
-          認識了 →
+          Kender →
         </button>
       </div>
     </div>
