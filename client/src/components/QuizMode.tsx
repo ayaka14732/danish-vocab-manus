@@ -14,7 +14,7 @@ interface QuizModeProps {
 
 interface QuizQuestion {
   word: VocabWord;
-  options: string[]; // Chinese options
+  options: string[]; // English options
   correctIndex: number;
 }
 
@@ -27,6 +27,12 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+// Shorten long English translations for display
+function shortEnglish(en: string): string {
+  // Take only the first translation if multiple are separated by ;
+  return en.split(";")[0].split(",")[0].trim();
+}
+
 function buildQuestions(category: WordCategory | "all", count = 10): QuizQuestion[] {
   const pool =
     category === "all"
@@ -36,13 +42,14 @@ function buildQuestions(category: WordCategory | "all", count = 10): QuizQuestio
   const selected = shuffle(pool).slice(0, Math.min(count, pool.length));
 
   return selected.map((word) => {
+    const correct = shortEnglish(word.english);
     // Build 4 options: 1 correct + 3 random wrong
     const others = VOCABULARY.filter((w) => w.id !== word.id);
     const wrong = shuffle(others)
       .slice(0, 3)
-      .map((w) => w.chinese);
-    const options = shuffle([word.chinese, ...wrong]);
-    const correctIndex = options.indexOf(word.chinese);
+      .map((w) => shortEnglish(w.english));
+    const options = shuffle([correct, ...wrong]);
+    const correctIndex = options.indexOf(correct);
     return { word, options, correctIndex };
   });
 }
@@ -53,7 +60,6 @@ export default function QuizMode({ category, onComplete }: QuizModeProps) {
   const [selected, setSelected] = useState<number | null>(null);
   const [correct, setCorrect] = useState(0);
   const [finished, setFinished] = useState(false);
-  const [showResult, setShowResult] = useState(false);
 
   const init = useCallback(() => {
     setQuestions(buildQuestions(category, 10));
@@ -61,7 +67,6 @@ export default function QuizMode({ category, onComplete }: QuizModeProps) {
     setSelected(null);
     setCorrect(0);
     setFinished(false);
-    setShowResult(false);
   }, [category]);
 
   useEffect(() => { init(); }, [init]);
@@ -162,14 +167,16 @@ export default function QuizMode({ category, onComplete }: QuizModeProps) {
         style={{ minHeight: "160px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}
       >
         <p className="text-xs mb-3 font-medium" style={{ color: "#9B8B6E" }}>
-          以下丹麥語的中文意思是？
+          以下丹麥語的英文意思是？
         </p>
         <p className="text-5xl font-bold mb-2" style={{ fontFamily: "'Lora', serif", color: "#1A1A0E" }}>
           {q.word.danish}
         </p>
-        <p className="text-sm italic" style={{ color: "#6B5A3E" }}>
-          /{q.word.pronunciation}/
-        </p>
+        {q.word.pos && (
+          <p className="text-sm italic" style={{ color: "#6B5A3E" }}>
+            {q.word.pos}
+          </p>
+        )}
       </div>
 
       {/* Options */}

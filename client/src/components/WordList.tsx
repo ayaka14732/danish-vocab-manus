@@ -1,6 +1,6 @@
 // WordList.tsx
 // Design: Academic Elegance — table-style word list with gold accents
-// Expandable rows show example sentences
+// Expandable rows show English translation and POS
 
 import { useState } from "react";
 import { VocabWord, WordProgress } from "@/lib/vocabulary";
@@ -19,7 +19,6 @@ export default function WordList({ words, progress }: WordListProps) {
   const filtered = words.filter(
     (w) =>
       w.danish.toLowerCase().includes(search.toLowerCase()) ||
-      w.chinese.includes(search) ||
       w.english.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -32,13 +31,19 @@ export default function WordList({ words, progress }: WordListProps) {
     }
   }
 
+  // Shorten long English for inline display
+  function shortEnglish(en: string): string {
+    const first = en.split(";")[0].trim();
+    return first.length > 30 ? first.slice(0, 28) + "…" : first;
+  }
+
   return (
     <div className="flex flex-col gap-4">
       {/* Search */}
       <div className="relative">
         <input
           type="text"
-          placeholder="搜尋單詞..."
+          placeholder="搜尋丹麥語或英文..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full px-4 py-2.5 rounded-xl text-sm outline-none transition-all"
@@ -101,15 +106,15 @@ export default function WordList({ words, progress }: WordListProps) {
 
                 {/* Danish word */}
                 <p
-                  className="font-semibold text-base flex-1 min-w-0"
+                  className="font-semibold text-base flex-1 min-w-0 truncate"
                   style={{ fontFamily: "'Lora', serif", color: "#F5F0E8" }}
                 >
                   {word.danish}
                 </p>
 
-                {/* Chinese */}
-                <p className="text-sm shrink-0" style={{ color: "rgba(245,240,232,0.7)" }}>
-                  {word.chinese}
+                {/* Short English */}
+                <p className="text-sm shrink-0 max-w-[140px] truncate" style={{ color: "rgba(245,240,232,0.7)" }}>
+                  {shortEnglish(word.english)}
                 </p>
 
                 {/* Speak */}
@@ -133,13 +138,12 @@ export default function WordList({ words, progress }: WordListProps) {
                   className="px-4 pb-4 pt-1 border-t"
                   style={{ borderColor: "rgba(201,168,76,0.2)" }}
                 >
-                  <div className="flex flex-wrap gap-3 mb-3">
-                    <span className="text-xs px-2 py-0.5 rounded" style={{ background: "rgba(201,168,76,0.15)", color: "#C9A84C" }}>
-                      {word.english}
-                    </span>
-                    <span className="text-xs px-2 py-0.5 rounded" style={{ background: "rgba(245,240,232,0.08)", color: "rgba(245,240,232,0.6)" }}>
-                      /{word.pronunciation}/
-                    </span>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {word.pos && (
+                      <span className="text-xs px-2 py-0.5 rounded" style={{ background: "rgba(201,168,76,0.15)", color: "#C9A84C" }}>
+                        {word.pos}
+                      </span>
+                    )}
                     <span
                       className="text-xs px-2 py-0.5 rounded capitalize"
                       style={{ background: "rgba(245,240,232,0.05)", color: "rgba(245,240,232,0.4)" }}
@@ -147,24 +151,12 @@ export default function WordList({ words, progress }: WordListProps) {
                       {word.difficulty === "beginner" ? "初級" : word.difficulty === "intermediate" ? "中級" : "高級"}
                     </span>
                   </div>
-                  {word.example && (
-                    <div
-                      className="p-3 rounded-lg"
-                      style={{ background: "rgba(201,168,76,0.08)", borderLeft: "3px solid rgba(201,168,76,0.5)" }}
-                    >
-                      <p className="text-sm italic mb-1" style={{ color: "rgba(245,240,232,0.85)" }}>
-                        {word.example}
-                      </p>
-                      {word.exampleChinese && (
-                        <p className="text-xs" style={{ color: "rgba(245,240,232,0.5)" }}>
-                          {word.exampleChinese}
-                        </p>
-                      )}
-                    </div>
-                  )}
+                  <p className="text-sm" style={{ color: "rgba(245,240,232,0.85)" }}>
+                    {word.english}
+                  </p>
                   {wp && (
                     <p className="text-xs mt-2" style={{ color: "rgba(245,240,232,0.35)" }}>
-                      已複習 {wp.reviewCount} 次 · 正確 {wp.correctCount} 次
+                      已複習 {wp.attempts} 次 · 正確 {wp.correct} 次
                     </p>
                   )}
                 </div>

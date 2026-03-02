@@ -1,6 +1,6 @@
 // TypingMode.tsx
 // Design: Academic Elegance — typing practice with parchment input
-// Shows Danish word, user types Chinese meaning
+// Shows Danish word, user types English meaning
 
 import { useState, useRef, useEffect } from "react";
 import { VocabWord, VOCABULARY, WordCategory } from "@/lib/vocabulary";
@@ -19,6 +19,15 @@ function shuffle<T>(arr: T[]): T[] {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+// Check if user answer matches any of the English translations
+function checkAnswer(answer: string, english: string): boolean {
+  const ans = answer.trim().toLowerCase();
+  if (!ans) return false;
+  // Split by ; and , to get individual translations
+  const parts = english.split(/[;,]/).map((s) => s.trim().toLowerCase());
+  return parts.some((p) => p === ans || p.startsWith(ans) || ans.startsWith(p));
 }
 
 export default function TypingMode({ category, onComplete }: TypingModeProps) {
@@ -47,12 +56,8 @@ export default function TypingMode({ category, onComplete }: TypingModeProps) {
     e.preventDefault();
     if (status !== "idle" || !words[current]) return;
 
-    const answer = input.trim();
     const word = words[current];
-    const isCorrect =
-      answer === word.chinese ||
-      answer === word.english ||
-      word.chinese.includes(answer);
+    const isCorrect = checkAnswer(input, word.english);
 
     setStatus(isCorrect ? "correct" : "incorrect");
     if (isCorrect) setCorrect((c) => c + 1);
@@ -66,7 +71,7 @@ export default function TypingMode({ category, onComplete }: TypingModeProps) {
         setInput("");
         setStatus("idle");
       }
-    }, 1200);
+    }, 1400);
   }
 
   function speakWord(danish: string) {
@@ -111,14 +116,16 @@ export default function TypingMode({ category, onComplete }: TypingModeProps) {
       </div>
 
       <div className="parchment-card rounded-2xl gold-border p-8 text-center shadow-2xl">
-        <p className="text-xs mb-3" style={{ color: "#9B8B6E" }}>請輸入以下丹麥語的中文意思</p>
+        <p className="text-xs mb-3" style={{ color: "#9B8B6E" }}>請輸入以下丹麥語的英文意思</p>
         <div className="flex items-center justify-center gap-3 mb-2">
           <p className="text-5xl font-bold" style={{ fontFamily: "'Lora', serif", color: "#1A1A0E" }}>{word.danish}</p>
           <button onClick={() => speakWord(word.danish)} className="p-1.5 rounded-full hover:bg-black/10 transition-colors">
             <Volume2 size={18} style={{ color: "#8B7355" }} />
           </button>
         </div>
-        <p className="text-sm italic" style={{ color: "#6B5A3E" }}>/{word.pronunciation}/</p>
+        {word.pos && (
+          <p className="text-sm italic" style={{ color: "#6B5A3E" }}>{word.pos}</p>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
@@ -128,7 +135,7 @@ export default function TypingMode({ category, onComplete }: TypingModeProps) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           disabled={status !== "idle"}
-          placeholder="輸入中文意思..."
+          placeholder="Type the English meaning..."
           className={cn(
             "w-full px-5 py-4 rounded-xl text-base outline-none transition-all duration-200",
             status === "correct" && "flash-correct",
@@ -142,7 +149,7 @@ export default function TypingMode({ category, onComplete }: TypingModeProps) {
         />
         {status === "incorrect" && (
           <p className="text-sm text-center" style={{ color: "#E08070" }}>
-            正確答案：<strong style={{ color: "#F5F0E8" }}>{word.chinese}</strong>（{word.english}）
+            正確答案：<strong style={{ color: "#F5F0E8" }}>{word.english}</strong>
           </p>
         )}
         {status === "idle" && (

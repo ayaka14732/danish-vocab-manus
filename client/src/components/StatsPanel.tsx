@@ -2,11 +2,24 @@
 // Design: Academic Elegance — stats with gold accents and progress rings
 // Shows overall progress, streak, accuracy, category breakdown
 
-import { VOCABULARY, CATEGORIES, WordCategory, UserProgress, getStats } from "@/lib/vocabulary";
+import { VOCABULARY, CATEGORIES, WordCategory, UserProgress } from "@/lib/vocabulary";
 
 interface StatsPanelProps {
   progress: UserProgress;
 }
+
+const CAT_COLORS: Record<WordCategory, string> = {
+  basics:  "linear-gradient(90deg, #C9A84C, #E0C06A)",
+  numbers: "linear-gradient(90deg, #7BA8C9, #9DC4E0)",
+  colors:  "linear-gradient(90deg, #C97BC9, #E09DE0)",
+  food:    "linear-gradient(90deg, #C9784C, #E09A6A)",
+  family:  "linear-gradient(90deg, #70C090, #90E0B0)",
+  body:    "linear-gradient(90deg, #E07060, #F09080)",
+  nature:  "linear-gradient(90deg, #80B860, #A0D880)",
+  travel:  "linear-gradient(90deg, #6080C0, #80A0E0)",
+  time:    "linear-gradient(90deg, #B0A060, #D0C080)",
+  phrases: "linear-gradient(90deg, #A070A0, #C090C0)",
+};
 
 function CategoryBar({ category, progress }: { category: WordCategory; progress: UserProgress }) {
   const cat = CATEGORIES[category];
@@ -31,7 +44,7 @@ function CategoryBar({ category, progress }: { category: WordCategory; progress:
         <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(245,240,232,0.1)" }}>
           <div
             className="h-full rounded-full transition-all duration-700"
-            style={{ width: `${pct}%`, background: cat.color }}
+            style={{ width: `${pct}%`, background: CAT_COLORS[category] }}
           />
         </div>
       </div>
@@ -40,18 +53,23 @@ function CategoryBar({ category, progress }: { category: WordCategory; progress:
 }
 
 export default function StatsPanel({ progress }: StatsPanelProps) {
-  const stats = getStats(progress);
-  const progressPct = Math.round((stats.known / stats.all) * 100);
+  const allWords = VOCABULARY.length;
+  const knownWords = Object.values(progress.words).filter((w) => w.known).length;
+  const reviewedWords = Object.values(progress.words).filter((w) => w.attempts > 0).length;
+  const totalAttempts = Object.values(progress.words).reduce((s, w) => s + w.attempts, 0);
+  const totalCorrect = Object.values(progress.words).reduce((s, w) => s + w.correct, 0);
+  const accuracy = totalAttempts > 0 ? Math.round((totalCorrect / totalAttempts) * 100) : 0;
+  const progressPct = allWords > 0 ? Math.round((knownWords / allWords) * 100) : 0;
 
   return (
     <div className="flex flex-col gap-6">
       {/* Big stats row */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: "總單詞", value: stats.all, unit: "個", color: "#C9A84C" },
-          { label: "已掌握", value: stats.known, unit: "個", color: "#70C090" },
-          { label: "正確率", value: stats.accuracy, unit: "%", color: "#7BA8C9" },
-          { label: "連續學習", value: stats.streak, unit: "天", color: "#E07060" },
+          { label: "總單詞", value: allWords, unit: "個", color: "#C9A84C" },
+          { label: "已掌握", value: knownWords, unit: "個", color: "#70C090" },
+          { label: "正確率", value: accuracy, unit: "%", color: "#7BA8C9" },
+          { label: "連續學習", value: progress.studyStreak, unit: "天", color: "#E07060" },
         ].map((s) => (
           <div
             key={s.label}
@@ -90,7 +108,7 @@ export default function StatsPanel({ progress }: StatsPanelProps) {
           />
         </div>
         <p className="text-xs mt-2" style={{ color: "rgba(245,240,232,0.4)" }}>
-          已複習 {stats.reviewed} 個，掌握 {stats.known} 個，共 {stats.all} 個
+          已複習 {reviewedWords} 個，掌握 {knownWords} 個，共 {allWords} 個
         </p>
       </div>
 
