@@ -1,11 +1,11 @@
 // FlashCard.tsx
-// Design: Academic Elegance — parchment card with 3D flip animation
-// Gold border, dark ink text, subtle paper texture background
-// Front: Danish word | Back: Chinese (primary) + English (secondary)
+// Design: Academic Elegance — parchment card, no flip animation
+// Interaction: Space/Click to reveal answer, ← = don't know, → = know
+// Front: Danish word | Revealed: Chinese (primary) + English (secondary)
 
 import { useState, useEffect } from "react";
 import { VocabWord, CATEGORIES } from "@/lib/vocabulary";
-import { Volume2, RotateCcw, ExternalLink } from "lucide-react";
+import { Volume2, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface FlashCardProps {
@@ -23,44 +23,34 @@ export default function FlashCard({
   cardIndex,
   totalCards,
 }: FlashCardProps) {
-  const [flipped, setFlipped] = useState(false);
-  const [animClass, setAnimClass] = useState("");
-  const [noTransition, setNoTransition] = useState(false);
+  const [revealed, setRevealed] = useState(false);
 
-  // Reset flip state whenever the word changes
+  // Reset whenever word changes
   useEffect(() => {
-    setNoTransition(true);
-    setFlipped(false);
-    setAnimClass("");
-    const id = requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setNoTransition(false);
-      });
-    });
-    return () => cancelAnimationFrame(id);
+    setRevealed(false);
   }, [word.id]);
 
-  function handleFlip() {
-    setFlipped((f) => !f);
-  }
+  // Keyboard shortcuts
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      // Ignore if focus is on an input/button/link
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "BUTTON" || tag === "A") return;
 
-  function handleKnow() {
-    setAnimClass("flash-correct");
-    setTimeout(() => {
-      setAnimClass("");
-      setFlipped(false);
-      onKnow();
-    }, 600);
-  }
-
-  function handleDontKnow() {
-    setAnimClass("flash-incorrect");
-    setTimeout(() => {
-      setAnimClass("");
-      setFlipped(false);
-      onDontKnow();
-    }, 600);
-  }
+      if (e.code === "Space") {
+        e.preventDefault();
+        setRevealed(true);
+      } else if (e.code === "ArrowRight" && revealed) {
+        e.preventDefault();
+        onKnow();
+      } else if (e.code === "ArrowLeft" && revealed) {
+        e.preventDefault();
+        onDontKnow();
+      }
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [revealed, onKnow, onDontKnow]);
 
   function speakWord() {
     if ("speechSynthesis" in window) {
@@ -71,12 +61,11 @@ export default function FlashCard({
     }
   }
 
-  // Shorten long English for subtitle display
   const shortEnglish = word.english.split(";")[0].split(",")[0].trim();
 
   return (
     <div className="flex flex-col items-center gap-6 w-full max-w-lg mx-auto">
-      {/* Progress indicator */}
+      {/* Progress bar */}
       <div className="w-full flex items-center gap-3">
         <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
           <div
@@ -94,130 +83,134 @@ export default function FlashCard({
 
       {/* Card */}
       <div
-        className={cn("card-scene w-full", animClass)}
-        style={{ height: "320px" }}
-        onClick={handleFlip}
+        className="parchment-card rounded-2xl gold-border w-full shadow-2xl cursor-pointer select-none"
+        style={{ minHeight: "300px" }}
+        onClick={() => !revealed && setRevealed(true)}
       >
+        {/* Header row */}
+        <div className="flex justify-between items-center px-6 pt-5 pb-3">
+          <span
+            className="text-xs font-medium px-2 py-0.5 rounded-full"
+            style={{ background: "rgba(201,168,76,0.2)", color: "#C9A84C" }}
+          >
+            {CATEGORIES[word.category]?.label ?? word.category}
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={(e) => { e.stopPropagation(); speakWord(); }}
+              className="p-1.5 rounded-full hover:bg-black/10 transition-colors"
+              title="朗讀發音"
+            >
+              <Volume2 size={15} style={{ color: "#8B7355" }} />
+            </button>
+          </div>
+        </div>
+
+        {/* Danish word — always visible */}
+        <div className="flex flex-col items-center justify-center px-8 pb-4">
+          <p
+            className="text-5xl font-bold text-center mb-1"
+            style={{ fontFamily: "'Lora', serif", color: "#1A1A0E" }}
+          >
+            {word.danish}
+          </p>
+          {word.pos && (
+            <p className="text-sm italic" style={{ color: "#6B5A3E" }}>
+              {word.pos}
+            </p>
+          )}
+        </div>
+
+        {/* Divider */}
+        <div style={{ height: "1px", background: "rgba(139,115,85,0.25)", margin: "0 2rem" }} />
+
+        {/* Answer area */}
         <div
-          className={cn("card-flip", flipped && "flipped")}
-          style={noTransition ? { transition: "none" } : undefined}
+          className="flex flex-col items-center justify-center px-8 py-6"
+          style={{ minHeight: "120px" }}
         >
-          {/* Front — Danish word */}
-          <div className="card-face parchment-card rounded-2xl gold-border flex flex-col items-center justify-center p-8 cursor-pointer select-none shadow-2xl">
-            <div className="absolute top-4 left-4 right-4 flex justify-between items-center">
-              <span
-                className="text-xs font-medium px-2 py-0.5 rounded-full"
-                style={{ background: "rgba(201,168,76,0.2)", color: "#C9A84C" }}
+          {revealed ? (
+            <div className="flex flex-col items-center gap-2 w-full">
+              {/* Chinese — primary */}
+              <p
+                className="text-3xl font-bold text-center"
+                style={{ fontFamily: "'Noto Sans TC', sans-serif", color: "#1A1A0E" }}
               >
-                {CATEGORIES[word.category]?.label ?? word.category}
-              </span>
-              <button
-                onClick={(e) => { e.stopPropagation(); speakWord(); }}
-                className="p-1.5 rounded-full hover:bg-black/10 transition-colors"
-                title="朗讀發音"
-              >
-                <Volume2 size={16} style={{ color: "#8B7355" }} />
-              </button>
-            </div>
-
-            <p className="text-5xl font-bold mb-3 text-center" style={{ fontFamily: "'Lora', serif", color: "#1A1A0E" }}>
-              {word.danish}
-            </p>
-            {word.pos && (
-              <p className="text-sm text-center" style={{ color: "#6B5A3E", fontStyle: "italic" }}>
-                {word.pos}
+                {word.chinese || shortEnglish}
               </p>
-            )}
-
-            <div className="absolute bottom-4 left-0 right-0 text-center">
-              <span className="text-xs" style={{ color: "#9B8B6E" }}>點擊翻轉查看答案</span>
+              {/* English — secondary */}
+              <p className="text-sm text-center italic" style={{ color: "#5A4A2E" }}>
+                {shortEnglish}
+              </p>
+              {/* External links */}
+              <div className="flex items-center gap-4 mt-2">
+                <a
+                  href={`https://en.wiktionary.org/wiki/${encodeURIComponent(word.danish)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1 text-xs hover:underline"
+                  style={{ color: "rgba(139,115,85,0.7)" }}
+                >
+                  <ExternalLink size={11} />
+                  Wiktionary
+                </a>
+                <a
+                  href={`https://ordnet.dk/ddo/ordbog?query=${encodeURIComponent(word.danish)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1 text-xs hover:underline"
+                  style={{ color: "rgba(139,115,85,0.7)" }}
+                >
+                  <ExternalLink size={11} />
+                  ordnet.dk
+                </a>
+              </div>
             </div>
-          </div>
-
-          {/* Back — Chinese (primary) + English (secondary) */}
-          <div className="card-face card-face-back parchment-card rounded-2xl gold-border flex flex-col items-center justify-center p-8 cursor-pointer select-none shadow-2xl">
-            <div className="absolute top-4 right-4 flex items-center gap-2">
-              <a
-                href={`https://en.wiktionary.org/wiki/${encodeURIComponent(word.danish)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                title="Wiktionary"
-                className="p-1 rounded hover:bg-black/10 transition-colors text-xs font-bold"
-                style={{ color: "#9B8B6E", fontFamily: "serif" }}
-              >
-                W
-              </a>
-              <a
-                href={`https://ordnet.dk/ddo/ordbog?query=${encodeURIComponent(word.danish)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                title="ordnet.dk"
-                className="p-1 rounded hover:bg-black/10 transition-colors"
-              >
-                <ExternalLink size={13} style={{ color: "#9B8B6E" }} />
-              </a>
-              <RotateCcw size={14} style={{ color: "#9B8B6E" }} />
-            </div>
-
-            {/* Chinese — main answer */}
-            <p className="text-4xl font-bold mb-2 text-center" style={{ fontFamily: "'Noto Sans TC', sans-serif", color: "#1A1A0E" }}>
-              {word.chinese || word.english.split(";")[0].trim()}
+          ) : (
+            <p className="text-sm" style={{ color: "#9B8B6E" }}>
+              按 <kbd className="px-1.5 py-0.5 rounded text-xs font-mono" style={{ background: "rgba(139,115,85,0.2)", color: "#6B5A3E" }}>Space</kbd> 或點擊顯示答案
             </p>
-
-            {/* English — subtitle */}
-            <p className="text-base text-center mb-3" style={{ color: "#5A4A2E", fontStyle: "italic" }}>
-              {shortEnglish}
-            </p>
-
-            {word.pos && (
-              <span
-                className="text-xs px-2 py-0.5 rounded-full"
-                style={{ background: "rgba(201,168,76,0.2)", color: "#8B6A2E" }}
-              >
-                {word.pos}
-              </span>
-            )}
-          </div>
+          )}
         </div>
       </div>
 
-      {/* Action buttons — only show when flipped */}
+      {/* Action buttons — only show when revealed */}
       <div
         className={cn(
-          "flex gap-4 w-full transition-all duration-300",
-          flipped ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
+          "flex gap-4 w-full transition-all duration-200",
+          revealed ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3 pointer-events-none"
         )}
       >
         <button
-          onClick={handleDontKnow}
-          className="flex-1 py-3 rounded-xl font-medium text-sm transition-all duration-200 hover:scale-105 active:scale-95"
+          onClick={onDontKnow}
+          className="flex-1 py-3 rounded-xl font-medium text-sm transition-all duration-150 hover:scale-105 active:scale-95"
           style={{
-            background: "rgba(180,60,40,0.15)",
-            border: "1px solid rgba(180,60,40,0.35)",
+            background: "rgba(180,60,40,0.12)",
+            border: "1px solid rgba(180,60,40,0.3)",
             color: "#E07060",
           }}
         >
-          不認識
+          ← 不認識
         </button>
         <button
-          onClick={handleKnow}
-          className="flex-1 py-3 rounded-xl font-medium text-sm transition-all duration-200 hover:scale-105 active:scale-95"
+          onClick={onKnow}
+          className="flex-1 py-3 rounded-xl font-medium text-sm transition-all duration-150 hover:scale-105 active:scale-95"
           style={{
-            background: "rgba(80,160,100,0.15)",
-            border: "1px solid rgba(80,160,100,0.35)",
+            background: "rgba(80,160,100,0.12)",
+            border: "1px solid rgba(80,160,100,0.3)",
             color: "#70C090",
           }}
         >
-          認識了！
+          認識了 →
         </button>
       </div>
 
-      {/* Hint when not flipped */}
-      {!flipped && (
-        <p className="text-xs text-center" style={{ color: "rgba(255,255,255,0.3)" }}>
-          點擊卡片翻轉，查看中文翻譯
+      {/* Keyboard hint */}
+      {revealed && (
+        <p className="text-xs text-center" style={{ color: "rgba(255,255,255,0.25)" }}>
+          <kbd className="font-mono">←</kbd> 不認識 &nbsp;·&nbsp; <kbd className="font-mono">→</kbd> 認識了
         </p>
       )}
     </div>
