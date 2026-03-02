@@ -1,11 +1,9 @@
-// QuizMode.tsx
-// Design: Academic Elegance — multiple choice quiz with parchment options
-// Shows Danish word, user picks correct Chinese translation
+// QuizMode.tsx — ADHD-friendly
+// Clean multiple choice. No decorative icons.
 
 import { useState, useEffect, useCallback } from "react";
 import { VocabWord, VOCABULARY, WordCategory } from "@/lib/vocabulary";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, XCircle, Trophy, RotateCcw, ExternalLink } from "lucide-react";
 
 interface QuizModeProps {
   category: WordCategory | "all";
@@ -28,22 +26,15 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 function buildQuestions(category: WordCategory | "all", count = 10): QuizQuestion[] {
-  const pool =
-    category === "all"
-      ? VOCABULARY
-      : VOCABULARY.filter((w) => w.category === category);
-
+  const pool = category === "all" ? VOCABULARY : VOCABULARY.filter((w) => w.category === category);
   const selected = shuffle(pool).slice(0, Math.min(count, pool.length));
-
   return selected.map((word) => {
     const correct = word.chinese || word.english.split(";")[0].trim();
-    const others = VOCABULARY.filter((w) => w.id !== word.id);
-    const wrong = shuffle(others)
+    const wrong = shuffle(VOCABULARY.filter((w) => w.id !== word.id))
       .slice(0, 3)
       .map((w) => w.chinese || w.english.split(";")[0].trim());
     const options = shuffle([correct, ...wrong]);
-    const correctIndex = options.indexOf(correct);
-    return { word, options, correctIndex };
+    return { word, options, correctIndex: options.indexOf(correct) };
   });
 }
 
@@ -69,7 +60,6 @@ export default function QuizMode({ category, onComplete }: QuizModeProps) {
     setSelected(idx);
     const isCorrect = idx === questions[current].correctIndex;
     if (isCorrect) setCorrect((c) => c + 1);
-
     setTimeout(() => {
       if (current + 1 >= questions.length) {
         setFinished(true);
@@ -78,53 +68,26 @@ export default function QuizMode({ category, onComplete }: QuizModeProps) {
         setCurrent((c) => c + 1);
         setSelected(null);
       }
-    }, 1200);
+    }, 1000);
   }
 
-  if (questions.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p style={{ color: "rgba(255,255,255,0.5)" }}>載入中...</p>
-      </div>
-    );
-  }
+  if (questions.length === 0) return null;
 
   if (finished) {
     const pct = Math.round((correct / questions.length) * 100);
     return (
-      <div className="flex flex-col items-center gap-6 py-8 max-w-md mx-auto text-center">
-        <div
-          className="w-24 h-24 rounded-full flex items-center justify-center"
-          style={{ background: "rgba(201,168,76,0.15)", border: "2px solid #C9A84C" }}
-        >
-          <Trophy size={40} style={{ color: "#C9A84C" }} />
-        </div>
-        <div>
-          <h2 className="text-3xl font-bold mb-1" style={{ fontFamily: "'Lora', serif", color: "#F5F0E8" }}>
-            測驗完成！
-          </h2>
-          <p style={{ color: "rgba(245,240,232,0.6)" }}>你的成績</p>
-        </div>
-        <div
-          className="w-full p-6 rounded-2xl"
-          style={{ background: "rgba(245,240,232,0.06)", border: "1px solid rgba(201,168,76,0.3)" }}
-        >
-          <p className="text-6xl font-bold mb-2" style={{ fontFamily: "'Lora', serif", color: "#C9A84C" }}>
-            {pct}%
-          </p>
-          <p style={{ color: "rgba(245,240,232,0.7)" }}>
-            {correct} / {questions.length} 題答對
-          </p>
-        </div>
-        <p className="text-sm" style={{ color: "rgba(245,240,232,0.5)" }}>
-          {pct >= 80 ? "🎉 優秀！繼續保持！" : pct >= 60 ? "👍 不錯，再接再厲！" : "💪 多練習幾次，你會進步的！"}
+      <div className="flex flex-col items-center gap-6 py-12 text-center">
+        <p className="text-6xl font-bold" style={{ fontFamily: "'Lora', serif", color: "#C9A84C" }}>
+          {pct}%
+        </p>
+        <p style={{ color: "rgba(232,228,220,0.5)" }}>
+          {correct} / {questions.length} 題答對
         </p>
         <button
           onClick={init}
-          className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all hover:scale-105 active:scale-95"
-          style={{ background: "#C9A84C", color: "#1A1A0E" }}
+          className="px-6 py-2.5 rounded-lg text-sm font-medium"
+          style={{ background: "rgba(201,168,76,0.15)", border: "1px solid rgba(201,168,76,0.3)", color: "#C9A84C" }}
         >
-          <RotateCcw size={16} />
           再測一次
         </button>
       </div>
@@ -134,115 +97,65 @@ export default function QuizMode({ category, onComplete }: QuizModeProps) {
   const q = questions[current];
 
   return (
-    <div className="flex flex-col gap-6 max-w-lg mx-auto w-full">
-      {/* Progress */}
-      <div className="flex items-center gap-3">
-        <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{
-              width: `${(current / questions.length) * 100}%`,
-              background: "linear-gradient(90deg, #C9A84C, #E0C06A)",
-            }}
-          />
-        </div>
-        <span className="text-xs font-medium tabular-nums" style={{ color: "rgba(255,255,255,0.5)" }}>
-          {current + 1} / {questions.length}
-        </span>
-        <span className="text-xs font-medium" style={{ color: "#70C090" }}>
-          ✓ {correct}
-        </span>
-      </div>
+    <div className="flex flex-col gap-5 w-full">
 
-      {/* Question */}
+      {/* Counter */}
+      <p className="text-right text-xs tabular-nums" style={{ color: "rgba(232,228,220,0.25)" }}>
+        {current + 1} / {questions.length}
+      </p>
+
+      {/* Question card */}
       <div
-        className="parchment-card rounded-2xl gold-border p-8 text-center shadow-2xl"
+        className="parchment-card rounded-2xl gold-border p-8 text-center"
         style={{ minHeight: "160px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}
       >
-        <p className="text-xs mb-3 font-medium" style={{ color: "#9B8B6E" }}>
-          以下丹麥語的中文意思是？
-        </p>
-        <p className="text-5xl font-bold mb-2" style={{ fontFamily: "'Lora', serif", color: "#1A1A0E" }}>
+        <p className="text-5xl font-bold" style={{ fontFamily: "'Lora', serif", color: "#1A1A0E" }}>
           {q.word.danish}
         </p>
         {q.word.pos && (
-          <p className="text-sm italic" style={{ color: "#6B5A3E" }}>
-            {q.word.pos}
-          </p>
+          <p className="text-sm italic mt-1" style={{ color: "#8B7355" }}>{q.word.pos}</p>
         )}
       </div>
 
-      {/* External links — shown after answering */}
+      {/* External links — after answering */}
       {selected !== null && (
-        <div className="flex items-center justify-end gap-4">
-          <a
-            href={`https://en.wiktionary.org/wiki/${encodeURIComponent(q.word.danish)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs hover:underline"
-            style={{ color: "rgba(201,168,76,0.7)" }}
-          >
-            <ExternalLink size={11} />
+        <div className="flex justify-end gap-5">
+          <a href={`https://en.wiktionary.org/wiki/${encodeURIComponent(q.word.danish)}`}
+            target="_blank" rel="noopener noreferrer"
+            className="text-xs hover:underline" style={{ color: "rgba(201,168,76,0.5)" }}>
             Wiktionary
           </a>
-          <a
-            href={`https://ordnet.dk/ddo/ordbog?query=${encodeURIComponent(q.word.danish)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs hover:underline"
-            style={{ color: "rgba(201,168,76,0.7)" }}
-          >
-            <ExternalLink size={11} />
+          <a href={`https://ordnet.dk/ddo/ordbog?query=${encodeURIComponent(q.word.danish)}`}
+            target="_blank" rel="noopener noreferrer"
+            className="text-xs hover:underline" style={{ color: "rgba(201,168,76,0.5)" }}>
             ordnet.dk
           </a>
         </div>
       )}
 
       {/* Options */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2.5">
         {q.options.map((opt, idx) => {
-          let style: React.CSSProperties = {
-            background: "rgba(245,240,232,0.06)",
-            border: "1px solid rgba(245,240,232,0.15)",
-            color: "#F5F0E8",
-          };
+          let bg = "rgba(232,228,220,0.05)";
+          let border = "rgba(232,228,220,0.1)";
+          let color = "#E8E4DC";
           if (selected !== null) {
-            if (idx === q.correctIndex) {
-              style = {
-                background: "rgba(80,160,100,0.2)",
-                border: "1px solid rgba(80,160,100,0.6)",
-                color: "#90E0A0",
-              };
-            } else if (idx === selected && selected !== q.correctIndex) {
-              style = {
-                background: "rgba(180,60,40,0.2)",
-                border: "1px solid rgba(180,60,40,0.6)",
-                color: "#E08070",
-              };
-            }
+            if (idx === q.correctIndex) { bg = "rgba(70,150,90,0.15)"; border = "rgba(70,150,90,0.4)"; color = "#80C898"; }
+            else if (idx === selected) { bg = "rgba(180,60,40,0.15)"; border = "rgba(180,60,40,0.4)"; color = "#C07868"; }
           }
-
           return (
             <button
               key={idx}
               onClick={() => handleSelect(idx)}
               disabled={selected !== null}
               className={cn(
-                "py-4 px-4 rounded-xl text-sm font-medium transition-all duration-200",
-                selected === null && "hover:scale-105 hover:bg-white/10 active:scale-95"
+                "py-4 px-4 rounded-xl text-sm font-medium transition-colors text-left",
+                selected === null && "hover:bg-white/8"
               )}
-              style={style}
+              style={{ background: bg, border: `1px solid ${border}`, color }}
             >
-              <span className="text-xs mr-2 opacity-60">
-                {["A", "B", "C", "D"][idx]}.
-              </span>
+              <span className="text-xs mr-2" style={{ opacity: 0.4 }}>{["A","B","C","D"][idx]}.</span>
               {opt}
-              {selected !== null && idx === q.correctIndex && (
-                <CheckCircle2 size={14} className="inline ml-2" style={{ color: "#70C090" }} />
-              )}
-              {selected !== null && idx === selected && selected !== q.correctIndex && (
-                <XCircle size={14} className="inline ml-2" style={{ color: "#E07060" }} />
-              )}
             </button>
           );
         })}
