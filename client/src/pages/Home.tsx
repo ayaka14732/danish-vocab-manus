@@ -21,6 +21,14 @@ import { toast } from "sonner";
 
 type Tab = "flashcard" | "quiz" | "wordlist" | "stats";
 type FilterCategory = WordCategory | "all";
+type FilterDifficulty = "all" | "beginner" | "intermediate" | "advanced";
+
+const DIFFICULTY_LABELS: Record<FilterDifficulty, string> = {
+  all: "Alle niveauer",
+  beginner: "Begynder",
+  intermediate: "Mellemniveau",
+  advanced: "Avanceret",
+};
 
 // Auto-mode speed presets (ms to show word before revealing, ms to show answer before advancing)
 const SPEED_PRESETS = [
@@ -52,6 +60,7 @@ export default function Home() {
   const [progress, setProgress] = useState<UserProgress>(loadProgress);
   const [cardIndex, setCardIndex] = useState(0);
   const [deck, setDeck] = useState(() => shuffle(VOCABULARY));
+  const [difficulty, setDifficulty] = useState<FilterDifficulty>("all");
   const [catOpen, setCatOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [headerVisible, setHeaderVisible] = useState(false);
@@ -74,10 +83,11 @@ export default function Home() {
   useEffect(() => { saveProgress(progress); }, [progress]);
 
   useEffect(() => {
-    const pool = category === "all" ? VOCABULARY : VOCABULARY.filter((w) => w.category === category);
+    let pool = category === "all" ? VOCABULARY : VOCABULARY.filter((w) => w.category === category);
+    if (difficulty !== "all") pool = pool.filter((w) => w.difficulty === difficulty);
     setDeck(shuffle(pool));
     setCardIndex(0);
-  }, [category]);
+  }, [category, difficulty]);
 
   // Auto-hide header
   useEffect(() => {
@@ -106,10 +116,11 @@ export default function Home() {
 
   const currentWord = deck[cardIndex % Math.max(deck.length, 1)];
 
-  const filteredWords = useMemo(
-    () => category === "all" ? VOCABULARY : VOCABULARY.filter((w) => w.category === category),
-    [category]
-  );
+  const filteredWords = useMemo(() => {
+    let pool = category === "all" ? VOCABULARY : VOCABULARY.filter((w) => w.category === category);
+    if (difficulty !== "all") pool = pool.filter((w) => w.difficulty === difficulty);
+    return pool;
+  }, [category, difficulty]);
 
   function handleKnow() {
     setProgress((p) => markWord(p, currentWord.id, true));
@@ -179,6 +190,7 @@ export default function Home() {
 
   const knownCount = Object.values(progress.words).filter((w) => w.known).length;
   const catLabel = category === "all" ? "Alle" : CATEGORIES[category as WordCategory]?.label;
+  const diffLabel = difficulty === "all" ? null : DIFFICULTY_LABELS[difficulty];
   const poolSize = filteredWords.length;
 
   const showHeader = headerVisible || tab !== "flashcard";
@@ -303,7 +315,7 @@ export default function Home() {
               className="text-sm px-3 py-1.5 rounded-md transition-colors hover:bg-white/5"
               style={{ color: "rgba(255,255,255,0.3)" }}
             >
-              {catLabel} <span style={{ color: "rgba(255,255,255,0.15)" }}>{poolSize}</span>
+              {catLabel}{diffLabel ? ` · ${diffLabel}` : ""} <span style={{ color: "rgba(255,255,255,0.15)" }}>{poolSize}</span>
             </button>
 
             {catOpen && (
@@ -318,6 +330,27 @@ export default function Home() {
                     boxShadow: "0 8px 32px rgba(0,0,0,0.7)",
                   }}
                 >
+                  {/* Difficulty section */}
+                  <div className="px-4 pt-2 pb-1 text-xs" style={{ color: "rgba(255,255,255,0.2)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Niveau</div>
+                  {(["all", "beginner", "intermediate", "advanced"] as FilterDifficulty[]).map((d) => {
+                    const count = d === "all"
+                      ? (category === "all" ? VOCABULARY.length : VOCABULARY.filter((w) => w.category === category).length)
+                      : (category === "all" ? VOCABULARY : VOCABULARY.filter((w) => w.category === category)).filter((w) => w.difficulty === d).length;
+                    return (
+                      <button
+                        key={d}
+                        onClick={() => { setDifficulty(d); setCatOpen(false); }}
+                        className="w-full text-left px-4 py-2 text-sm transition-colors hover:bg-white/5"
+                        style={{ color: difficulty === d ? "#FFFFFF" : "rgba(255,255,255,0.4)" }}
+                      >
+                        {DIFFICULTY_LABELS[d]} <span className="float-right" style={{ color: "rgba(255,255,255,0.18)" }}>{count}</span>
+                      </button>
+                    );
+                  })}
+                  {/* Divider */}
+                  <div style={{ height: "1px", background: "rgba(255,255,255,0.06)", margin: "4px 0" }} />
+                  {/* Category section */}
+                  <div className="px-4 pt-2 pb-1 text-xs" style={{ color: "rgba(255,255,255,0.2)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Kategori</div>
                   <button
                     onClick={() => { setCategory("all"); setCatOpen(false); }}
                     className="w-full text-left px-4 py-2 text-sm transition-colors hover:bg-white/5"
