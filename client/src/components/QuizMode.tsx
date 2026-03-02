@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { VocabWord, VOCABULARY, WordCategory } from "@/lib/vocabulary";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, XCircle, Trophy, RotateCcw } from "lucide-react";
+import { CheckCircle2, XCircle, Trophy, RotateCcw, ExternalLink } from "lucide-react";
 
 interface QuizModeProps {
   category: WordCategory | "all";
@@ -171,6 +171,32 @@ export default function QuizMode({ category, onComplete }: QuizModeProps) {
           </p>
         )}
       </div>
+
+      {/* External links — shown after answering */}
+      {selected !== null && (
+        <div className="flex items-center justify-end gap-4">
+          <a
+            href={`https://en.wiktionary.org/wiki/${encodeURIComponent(q.word.danish)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs hover:underline"
+            style={{ color: "rgba(201,168,76,0.7)" }}
+          >
+            <ExternalLink size={11} />
+            Wiktionary
+          </a>
+          <a
+            href={`https://ordnet.dk/ddo/ordbog?query=${encodeURIComponent(q.word.danish)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs hover:underline"
+            style={{ color: "rgba(201,168,76,0.7)" }}
+          >
+            <ExternalLink size={11} />
+            ordnet.dk
+          </a>
+        </div>
+      )}
 
       {/* Options */}
       <div className="grid grid-cols-2 gap-3">

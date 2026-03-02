@@ -4,7 +4,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { VocabWord, VOCABULARY, WordCategory } from "@/lib/vocabulary";
-import { CheckCircle2, XCircle, RotateCcw, Trophy, Volume2 } from "lucide-react";
+import { CheckCircle2, XCircle, RotateCcw, Trophy, Volume2, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TypingModeProps {
@@ -175,6 +175,30 @@ export default function TypingMode({ category, onComplete }: TypingModeProps) {
         {status === "incorrect" && (
           <div className="flex items-center justify-center gap-2 mt-1" style={{ color: "#E07060" }}>
             <XCircle size={18} /> 繼續加油！
+          </div>
+        )}
+        {status !== "idle" && (
+          <div className="flex items-center justify-center gap-4">
+            <a
+              href={`https://en.wiktionary.org/wiki/${encodeURIComponent(word.danish)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs hover:underline"
+              style={{ color: "rgba(201,168,76,0.7)" }}
+            >
+              <ExternalLink size={11} />
+              Wiktionary
+            </a>
+            <a
+              href={`https://ordnet.dk/ddo/ordbog?query=${encodeURIComponent(word.danish)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs hover:underline"
+              style={{ color: "rgba(201,168,76,0.7)" }}
+            >
+              <ExternalLink size={11} />
+              ordnet.dk
+            </a>
           </div>
         )}
       </form>

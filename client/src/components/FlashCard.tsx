@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from "react";
 import { VocabWord, CATEGORIES } from "@/lib/vocabulary";
-import { Volume2, RotateCcw } from "lucide-react";
+import { Volume2, RotateCcw, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface FlashCardProps {
@@ -136,7 +136,28 @@ export default function FlashCard({
 
           {/* Back — Chinese (primary) + English (secondary) */}
           <div className="card-face card-face-back parchment-card rounded-2xl gold-border flex flex-col items-center justify-center p-8 cursor-pointer select-none shadow-2xl">
-            <div className="absolute top-4 right-4">
+            <div className="absolute top-4 right-4 flex items-center gap-2">
+              <a
+                href={`https://en.wiktionary.org/wiki/${encodeURIComponent(word.danish)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                title="Wiktionary"
+                className="p-1 rounded hover:bg-black/10 transition-colors text-xs font-bold"
+                style={{ color: "#9B8B6E", fontFamily: "serif" }}
+              >
+                W
+              </a>
+              <a
+                href={`https://ordnet.dk/ddo/ordbog?query=${encodeURIComponent(word.danish)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                title="ordnet.dk"
+                className="p-1 rounded hover:bg-black/10 transition-colors"
+              >
+                <ExternalLink size={13} style={{ color: "#9B8B6E" }} />
+              </a>
               <RotateCcw size={14} style={{ color: "#9B8B6E" }} />
             </div>
 

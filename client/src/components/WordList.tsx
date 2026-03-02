@@ -4,7 +4,7 @@
 
 import { useState } from "react";
 import { VocabWord, WordProgress } from "@/lib/vocabulary";
-import { ChevronDown, Volume2, CheckCircle2 } from "lucide-react";
+import { ChevronDown, Volume2, CheckCircle2, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface WordListProps {
@@ -160,8 +160,30 @@ export default function WordList({ words, progress }: WordListProps) {
                   <p className="text-sm" style={{ color: "rgba(245,240,232,0.6)" }}>
                     {word.english}
                   </p>
+                  <div className="flex items-center gap-3 mt-2">
+                    <a
+                      href={`https://en.wiktionary.org/wiki/${encodeURIComponent(word.danish)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs hover:underline"
+                      style={{ color: "rgba(201,168,76,0.7)" }}
+                    >
+                      <ExternalLink size={11} />
+                      Wiktionary
+                    </a>
+                    <a
+                      href={`https://ordnet.dk/ddo/ordbog?query=${encodeURIComponent(word.danish)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs hover:underline"
+                      style={{ color: "rgba(201,168,76,0.7)" }}
+                    >
+                      <ExternalLink size={11} />
+                      ordnet.dk
+                    </a>
+                  </div>
                   {wp && (
-                    <p className="text-xs mt-2" style={{ color: "rgba(245,240,232,0.35)" }}>
+                    <p className="text-xs mt-1" style={{ color: "rgba(245,240,232,0.35)" }}>
                       已複習 {wp.attempts} 次 · 正確 {wp.correct} 次
                     </p>
                   )}
