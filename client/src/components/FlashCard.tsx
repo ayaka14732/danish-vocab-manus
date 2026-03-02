@@ -11,6 +11,8 @@ interface FlashCardProps {
   onDontKnow: () => void;
   cardIndex: number;
   totalCards: number;
+  autoMode?: boolean;
+  autoRevealed?: boolean;
 }
 
 const STREAK_MESSAGES: Record<number, string> = {
@@ -31,8 +33,12 @@ export default function FlashCard({
   onDontKnow,
   cardIndex,
   totalCards,
+  autoMode = false,
+  autoRevealed = false,
 }: FlashCardProps) {
   const [revealed, setRevealed] = useState(false);
+  // In auto mode, use autoRevealed from parent
+  const effectiveRevealed = autoMode ? autoRevealed : revealed;
   const [streak, setStreak] = useState(0);
   const [flash, setFlash] = useState<"correct" | "wrong" | null>(null);
   const [streakMsg, setStreakMsg] = useState<string | null>(null);
@@ -52,8 +58,12 @@ export default function FlashCard({
     setRevealed(false);
   }, [word.id]);
 
+  // In auto mode, keyboard/touch are disabled
+  const isManual = !autoMode;
+
   // Keyboard shortcuts
   useEffect(() => {
+    if (!isManual) return;
     function handleKey(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement).tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "A") return;
@@ -63,7 +73,7 @@ export default function FlashCard({
     }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [revealed, streak]);
+  }, [revealed, streak, isManual]);
 
   function triggerFlash(type: "correct" | "wrong") {
     const color = type === "correct" ? "#44FF88" : "#FF4444";
@@ -113,12 +123,13 @@ export default function FlashCard({
 
   // ── Touch handlers ──
   function handleTouchStart(e: React.TouchEvent) {
+    if (!isManual) return;
     const t = e.touches[0];
     touchStart.current = { x: t.clientX, y: t.clientY, time: Date.now() };
   }
 
   function handleTouchEnd(e: React.TouchEvent) {
-    if (!touchStart.current) return;
+    if (!isManual || !touchStart.current) return;
     const t = e.changedTouches[0];
     const dx = t.clientX - touchStart.current.x;
     const dy = t.clientY - touchStart.current.y;
@@ -246,7 +257,7 @@ export default function FlashCard({
       >
         {/* The word — tap to speak */}
         <button
-          onClick={() => { speakWord(); setRevealed(true); }}
+          onClick={() => { speakWord(); if (isManual) setRevealed(true); }}
           className="text-center active:opacity-50 transition-opacity"
           style={{ background: "none", border: "none", padding: 0 }}
         >
@@ -273,7 +284,7 @@ export default function FlashCard({
           className="flex flex-col items-center gap-2 mt-8 w-full"
           style={{ minHeight: "130px" }}
         >
-          {revealed ? (
+          {effectiveRevealed ? (
             <>
               <p
                 className="text-4xl font-bold text-center"

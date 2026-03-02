@@ -1,7 +1,8 @@
 // Home.tsx — ADHD-friendly
 // Auto-hiding top bar. Vertically centered content. Pure black/white.
+// Auto mode: auto-reveal → auto-advance, adjustable speed, pausable.
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import {
   VOCABULARY,
   CATEGORIES,
@@ -20,6 +21,14 @@ import { toast } from "sonner";
 
 type Tab = "flashcard" | "quiz" | "wordlist" | "stats";
 type FilterCategory = WordCategory | "all";
+
+// Auto-mode speed presets (ms to show word before revealing, ms to show answer before advancing)
+const SPEED_PRESETS = [
+  { label: "1×", wordMs: 2000, answerMs: 2000 },
+  { label: "1.5×", wordMs: 1400, answerMs: 1400 },
+  { label: "2×", wordMs: 1000, answerMs: 1000 },
+  { label: "3×", wordMs: 700,  answerMs: 700  },
+];
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "flashcard", label: "Kort" },
@@ -46,7 +55,21 @@ export default function Home() {
   const [catOpen, setCatOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [headerVisible, setHeaderVisible] = useState(false);
+
+  // Auto mode
+  const [autoMode, setAutoMode] = useState(false);
+  const [autoPaused, setAutoPaused] = useState(false);
+  const [autoSpeedIdx, setAutoSpeedIdx] = useState(0);
+  // autoPhase: "word" = showing word, "answer" = showing answer
+  const [autoPhase, setAutoPhase] = useState<"word" | "answer">("word");
+  // Progress bar 0..1 for current phase
+  const [autoProgress, setAutoProgress] = useState(0);
+
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoRafRef = useRef<number | null>(null);
+  const autoStartRef = useRef<number>(0);
+  const autoDurationRef = useRef<number>(0);
 
   useEffect(() => { saveProgress(progress); }, [progress]);
 
@@ -56,7 +79,7 @@ export default function Home() {
     setCardIndex(0);
   }, [category]);
 
-  // Auto-hide header: show on mouse near top (within 48px), hide after 2s idle
+  // Auto-hide header
   useEffect(() => {
     function handleMouseMove(e: MouseEvent) {
       if (e.clientY < 48) {
@@ -69,7 +92,6 @@ export default function Home() {
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
 
-  // Also show header on touch (mobile tap near top)
   useEffect(() => {
     function handleTouch(e: TouchEvent) {
       if (e.touches[0]?.clientY < 60) {
@@ -103,18 +125,68 @@ export default function Home() {
     toast.success(`${correct}/${total} rigtige`);
   }
 
+  // ── Auto mode engine ──
+  const speed = SPEED_PRESETS[autoSpeedIdx];
+
+  const startAutoPhase = useCallback((phase: "word" | "answer", duration: number) => {
+    setAutoPhase(phase);
+    setAutoProgress(0);
+    autoStartRef.current = performance.now();
+    autoDurationRef.current = duration;
+
+    if (autoRafRef.current) cancelAnimationFrame(autoRafRef.current);
+    if (autoTimer.current) clearTimeout(autoTimer.current);
+
+    function tick() {
+      const elapsed = performance.now() - autoStartRef.current;
+      const p = Math.min(elapsed / autoDurationRef.current, 1);
+      setAutoProgress(p);
+      if (p < 1) {
+        autoRafRef.current = requestAnimationFrame(tick);
+      }
+    }
+    autoRafRef.current = requestAnimationFrame(tick);
+
+    autoTimer.current = setTimeout(() => {
+      if (phase === "word") {
+        // Reveal answer
+        startAutoPhase("answer", autoDurationRef.current === duration ? speed.answerMs : speed.answerMs);
+      } else {
+        // Advance to next card
+        setCardIndex((i) => (i + 1) % deck.length);
+        startAutoPhase("word", speed.wordMs);
+      }
+    }, duration);
+  }, [speed, deck.length]);
+
+  // Start/stop auto mode
+  useEffect(() => {
+    if (!autoMode || autoPaused) {
+      if (autoTimer.current) clearTimeout(autoTimer.current);
+      if (autoRafRef.current) cancelAnimationFrame(autoRafRef.current);
+      setAutoProgress(0);
+      return;
+    }
+    startAutoPhase("word", speed.wordMs);
+    return () => {
+      if (autoTimer.current) clearTimeout(autoTimer.current);
+      if (autoRafRef.current) cancelAnimationFrame(autoRafRef.current);
+    };
+  }, [autoMode, autoPaused, autoSpeedIdx, deck]);
+
+  // When auto mode is on, FlashCard should show revealed based on autoPhase
+  const autoRevealed = autoMode && autoPhase === "answer";
+
   const knownCount = Object.values(progress.words).filter((w) => w.known).length;
   const catLabel = category === "all" ? "Alle" : CATEGORIES[category as WordCategory]?.label;
   const poolSize = filteredWords.length;
 
-  // For non-flashcard tabs, show header always
   const showHeader = headerVisible || tab !== "flashcard";
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#191919", color: "#FFFFFF" }}>
 
       {/* ── Auto-hiding top bar ── */}
-      {/* Invisible trigger zone at the very top */}
       <div className="fixed top-0 left-0 right-0 h-12 z-40" style={{ pointerEvents: "none" }} />
 
       <header
@@ -157,65 +229,123 @@ export default function Home() {
           ))}
         </nav>
 
-        {/* Help button */}
-        <button
-          onClick={() => setHelpOpen(true)}
-          className="w-7 h-7 rounded-full flex items-center justify-center text-xs transition-colors hover:bg-white/10"
-          style={{ color: "rgba(255,255,255,0.25)", border: "1px solid rgba(255,255,255,0.1)", marginRight: "4px" }}
-          title="Tastaturgenveje"
-        >
-          ?
-        </button>
+        {/* Right controls */}
+        <div className="flex items-center gap-2">
+          {/* Auto mode toggle */}
+          {tab === "flashcard" && (
+            <div className="flex items-center gap-1.5">
+              {/* Speed selector — only visible in auto mode */}
+              {autoMode && (
+                <div className="flex items-center gap-0.5">
+                  {SPEED_PRESETS.map((s, i) => (
+                    <button
+                      key={s.label}
+                      onClick={() => setAutoSpeedIdx(i)}
+                      className="px-2 py-1 rounded text-xs transition-colors"
+                      style={
+                        autoSpeedIdx === i
+                          ? { background: "rgba(255,255,255,0.15)", color: "#FFFFFF" }
+                          : { color: "rgba(255,255,255,0.25)" }
+                      }
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-        {/* Category picker */}
-        <div className="relative">
+              {/* Pause/resume — only in auto mode */}
+              {autoMode && (
+                <button
+                  onClick={() => setAutoPaused((p) => !p)}
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-xs transition-colors hover:bg-white/10"
+                  style={{ color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.1)" }}
+                  title={autoPaused ? "Fortsæt" : "Pause"}
+                >
+                  {autoPaused ? "▶" : "⏸"}
+                </button>
+              )}
+
+              {/* Auto toggle button */}
+              <button
+                onClick={() => {
+                  setAutoMode((m) => !m);
+                  setAutoPaused(false);
+                  setAutoPhase("word");
+                }}
+                className="px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
+                style={
+                  autoMode
+                    ? { background: "rgba(255,255,255,0.15)", color: "#FFFFFF", border: "1px solid rgba(255,255,255,0.2)" }
+                    : { color: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.08)" }
+                }
+                title="Auto-afspilning"
+              >
+                Auto
+              </button>
+            </div>
+          )}
+
+          {/* Help button */}
           <button
-            onClick={() => setCatOpen((o) => !o)}
-            className="text-sm px-3 py-1.5 rounded-md transition-colors hover:bg-white/5"
-            style={{ color: "rgba(255,255,255,0.3)" }}
+            onClick={() => setHelpOpen(true)}
+            className="w-7 h-7 rounded-full flex items-center justify-center text-xs transition-colors hover:bg-white/10"
+            style={{ color: "rgba(255,255,255,0.25)", border: "1px solid rgba(255,255,255,0.1)" }}
+            title="Tastaturgenveje"
           >
-            {catLabel} <span style={{ color: "rgba(255,255,255,0.15)" }}>{poolSize}</span>
+            ?
           </button>
 
-          {catOpen && (
-            <>
-              <div className="fixed inset-0 z-10" onClick={() => setCatOpen(false)} />
-              <div
-                className="absolute right-0 top-full mt-1 z-20 rounded-xl overflow-hidden py-1"
-                style={{
-                  background: "#242424",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  minWidth: "160px",
-                  boxShadow: "0 8px 32px rgba(0,0,0,0.7)",
-                }}
-              >
-                <button
-                  onClick={() => { setCategory("all"); setCatOpen(false); }}
-                  className="w-full text-left px-4 py-2 text-sm transition-colors hover:bg-white/5"
-                  style={{ color: category === "all" ? "#FFFFFF" : "rgba(255,255,255,0.4)" }}
+          {/* Category picker */}
+          <div className="relative">
+            <button
+              onClick={() => setCatOpen((o) => !o)}
+              className="text-sm px-3 py-1.5 rounded-md transition-colors hover:bg-white/5"
+              style={{ color: "rgba(255,255,255,0.3)" }}
+            >
+              {catLabel} <span style={{ color: "rgba(255,255,255,0.15)" }}>{poolSize}</span>
+            </button>
+
+            {catOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setCatOpen(false)} />
+                <div
+                  className="absolute right-0 top-full mt-1 z-20 rounded-xl overflow-hidden py-1"
+                  style={{
+                    background: "#242424",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    minWidth: "160px",
+                    boxShadow: "0 8px 32px rgba(0,0,0,0.7)",
+                  }}
                 >
-                  Alle <span className="float-right" style={{ color: "rgba(255,255,255,0.18)" }}>{VOCABULARY.length}</span>
-                </button>
-                {(Object.entries(CATEGORIES) as [WordCategory, typeof CATEGORIES[WordCategory]][]).map(([key, cat]) => {
-                  const count = VOCABULARY.filter((w) => w.category === key).length;
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => { setCategory(key); setCatOpen(false); }}
-                      className="w-full text-left px-4 py-2 text-sm transition-colors hover:bg-white/5"
-                      style={{ color: category === key ? "#FFFFFF" : "rgba(255,255,255,0.4)" }}
-                    >
-                      {cat.label} <span className="float-right" style={{ color: "rgba(255,255,255,0.18)" }}>{count}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          )}
+                  <button
+                    onClick={() => { setCategory("all"); setCatOpen(false); }}
+                    className="w-full text-left px-4 py-2 text-sm transition-colors hover:bg-white/5"
+                    style={{ color: category === "all" ? "#FFFFFF" : "rgba(255,255,255,0.4)" }}
+                  >
+                    Alle <span className="float-right" style={{ color: "rgba(255,255,255,0.18)" }}>{VOCABULARY.length}</span>
+                  </button>
+                  {(Object.entries(CATEGORIES) as [WordCategory, typeof CATEGORIES[WordCategory]][]).map(([key, cat]) => {
+                    const count = VOCABULARY.filter((w) => w.category === key).length;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => { setCategory(key); setCatOpen(false); }}
+                        className="w-full text-left px-4 py-2 text-sm transition-colors hover:bg-white/5"
+                        style={{ color: category === key ? "#FFFFFF" : "rgba(255,255,255,0.4)" }}
+                      >
+                        {cat.label} <span className="float-right" style={{ color: "rgba(255,255,255,0.18)" }}>{count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
-      {/* ── Content — vertically centered for flashcard ── */}
+      {/* ── Content ── */}
       <main
         className="flex-1 flex"
         style={
@@ -235,6 +365,8 @@ export default function Home() {
               onDontKnow={handleDontKnow}
               cardIndex={cardIndex}
               totalCards={deck.length}
+              autoMode={autoMode}
+              autoRevealed={autoRevealed}
             />
           )}
           {tab === "quiz" && (
@@ -281,6 +413,10 @@ export default function Home() {
                   ["Stryg højre", "Kender"],
                   ["Stryg venstre", "Kender ikke"],
                   ["Tryk på ordet", "Udtale"],
+                  ["―――", ""],
+                  ["Auto", "Automatisk afspilning"],
+                  ["⏸ / ▶", "Pause / Fortsæt"],
+                  ["1× / 2× / 3×", "Hastighed"],
                 ].map(([key, desc]) => (
                   <tr key={key}>
                     <td style={{ width: "40%" }}>
@@ -310,14 +446,28 @@ export default function Home() {
       )}
 
       {/* ── Bottom progress strip ── */}
-      <div className="fixed bottom-0 left-0 right-0 h-px z-40" style={{ background: "rgba(255,255,255,0.05)" }}>
-        <div
-          className="h-full transition-all duration-700"
-          style={{
-            width: `${Math.round((knownCount / VOCABULARY.length) * 100)}%`,
-            background: "rgba(255,255,255,0.35)",
-          }}
-        />
+      <div className="fixed bottom-0 left-0 right-0 z-40" style={{ height: autoMode ? "3px" : "1px" }}>
+        {/* Overall known progress */}
+        <div className="absolute inset-0" style={{ background: "rgba(255,255,255,0.05)" }}>
+          <div
+            className="h-full transition-all duration-700"
+            style={{
+              width: `${Math.round((knownCount / VOCABULARY.length) * 100)}%`,
+              background: "rgba(255,255,255,0.2)",
+            }}
+          />
+        </div>
+        {/* Auto mode phase progress overlay */}
+        {autoMode && !autoPaused && (
+          <div
+            className="absolute inset-0 origin-left"
+            style={{
+              width: `${autoProgress * 100}%`,
+              background: autoPhase === "word" ? "rgba(255,255,255,0.5)" : "rgba(68,255,136,0.7)",
+              transition: "none",
+            }}
+          />
+        )}
       </div>
     </div>
   );
