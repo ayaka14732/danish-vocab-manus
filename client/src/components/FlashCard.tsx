@@ -205,36 +205,7 @@ export default function FlashCard({
         </div>
       </div>
 
-      {/* ── Judge buttons ── */}
-      <div
-        className={cn(
-          "flex gap-3 w-full max-w-xs mt-4 transition-opacity duration-150",
-          revealed ? "opacity-100" : "opacity-0 pointer-events-none"
-        )}
-      >
-        <button
-          onClick={handleDontKnow}
-          className="flex-1 py-3 rounded-lg text-sm font-medium"
-          style={{
-            background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            color: "rgba(255,255,255,0.35)",
-          }}
-        >
-          ← Kender ikke
-        </button>
-        <button
-          onClick={handleKnow}
-          className="flex-1 py-3 rounded-lg text-sm font-medium"
-          style={{
-            background: "rgba(255,255,255,0.08)",
-            border: "1px solid rgba(255,255,255,0.18)",
-            color: "rgba(255,255,255,0.85)",
-          }}
-        >
-          Kender →
-        </button>
-      </div>
+
     </div>
   );
 }
