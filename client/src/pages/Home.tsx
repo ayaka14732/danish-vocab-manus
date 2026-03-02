@@ -44,6 +44,7 @@ export default function Home() {
   const [cardIndex, setCardIndex] = useState(0);
   const [deck, setDeck] = useState(() => shuffle(VOCABULARY));
   const [catOpen, setCatOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [headerVisible, setHeaderVisible] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -156,6 +157,16 @@ export default function Home() {
           ))}
         </nav>
 
+        {/* Help button */}
+        <button
+          onClick={() => setHelpOpen(true)}
+          className="w-7 h-7 rounded-full flex items-center justify-center text-xs transition-colors hover:bg-white/10"
+          style={{ color: "rgba(255,255,255,0.25)", border: "1px solid rgba(255,255,255,0.1)", marginRight: "4px" }}
+          title="Tastaturgenveje"
+        >
+          ?
+        </button>
+
         {/* Category picker */}
         <div className="relative">
           <button
@@ -237,6 +248,61 @@ export default function Home() {
           )}
         </div>
       </main>
+
+      {/* ── Help dialog ── */}
+      {helpOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: "rgba(0,0,0,0.75)" }}
+          onClick={() => setHelpOpen(false)}
+        >
+          <div
+            className="rounded-2xl p-8 w-full"
+            style={{
+              maxWidth: "360px",
+              background: "#242424",
+              border: "1px solid rgba(255,255,255,0.08)",
+              boxShadow: "0 24px 64px rgba(0,0,0,0.8)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-base font-semibold mb-6" style={{ color: "rgba(255,255,255,0.9)", fontFamily: "'Lora', serif" }}>
+              Tastaturgenveje
+            </h2>
+            <table className="w-full" style={{ borderCollapse: "separate", borderSpacing: "0 12px" }}>
+              <tbody>
+                {[
+                  ["Mellemrum", "Vis svar"],
+                  ["→", "Kender"],
+                  ["←", "Kender ikke"],
+                  ["Klik på ordet", "Udtale"],
+                ].map(([key, desc]) => (
+                  <tr key={key}>
+                    <td style={{ width: "40%" }}>
+                      <kbd
+                        className="px-2.5 py-1 rounded text-xs font-mono"
+                        style={{
+                          background: "rgba(255,255,255,0.07)",
+                          border: "1px solid rgba(255,255,255,0.12)",
+                          color: "rgba(255,255,255,0.7)",
+                        }}
+                      >{key}</kbd>
+                    </td>
+                    <td className="text-sm" style={{ color: "rgba(255,255,255,0.45)" }}>{desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <button
+              onClick={() => setHelpOpen(false)}
+              className="mt-8 w-full py-2.5 rounded-lg text-sm transition-colors hover:bg-white/10"
+              style={{ color: "rgba(255,255,255,0.35)", border: "1px solid rgba(255,255,255,0.08)" }}
+            >
+              Luk
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Bottom progress strip ── */}
       <div className="fixed bottom-0 left-0 right-0 h-px z-40" style={{ background: "rgba(255,255,255,0.05)" }}>

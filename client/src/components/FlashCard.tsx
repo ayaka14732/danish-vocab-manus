@@ -201,11 +201,7 @@ export default function FlashCard({
                 >ordnet.dk</a>
               </div>
             </>
-          ) : (
-            <p className="text-sm select-none" style={{ color: "rgba(255,255,255,0.18)" }}>
-              Mellemrum
-            </p>
-          )}
+          ) : null}
         </div>
       </div>
 
