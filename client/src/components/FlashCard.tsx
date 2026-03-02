@@ -1,7 +1,7 @@
-// FlashCard.tsx — ADHD-friendly, no card chrome
-// One word, full focus. Space to reveal. ← → to judge.
+// FlashCard.tsx — ADHD-friendly
+// Instant reward: streak counter, encouraging messages, subtle flash on correct
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { VocabWord } from "@/lib/vocabulary";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,15 @@ interface FlashCardProps {
   totalCards: number;
 }
 
+const STREAK_MESSAGES: Record<number, string> = {
+  3:  "不錯！",
+  5:  "繼續！",
+  10: "太強了！",
+  15: "勢不可擋！",
+  20: "完美！",
+  30: "傳奇！",
+};
+
 export default function FlashCard({
   word,
   onKnow,
@@ -22,6 +31,11 @@ export default function FlashCard({
   totalCards,
 }: FlashCardProps) {
   const [revealed, setRevealed] = useState(false);
+  const [streak, setStreak] = useState(0);
+  const [flash, setFlash] = useState<"correct" | "wrong" | null>(null);
+  const [streakMsg, setStreakMsg] = useState<string | null>(null);
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const msgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setRevealed(false);
@@ -32,12 +46,37 @@ export default function FlashCard({
       const tag = (e.target as HTMLElement).tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "BUTTON" || tag === "A") return;
       if (e.code === "Space") { e.preventDefault(); setRevealed(true); }
-      else if (e.code === "ArrowRight" && revealed) { e.preventDefault(); onKnow(); }
-      else if (e.code === "ArrowLeft" && revealed) { e.preventDefault(); onDontKnow(); }
+      else if (e.code === "ArrowRight" && revealed) { e.preventDefault(); handleKnow(); }
+      else if (e.code === "ArrowLeft" && revealed) { e.preventDefault(); handleDontKnow(); }
     }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [revealed, onKnow, onDontKnow]);
+  }, [revealed, streak]);
+
+  function triggerFlash(type: "correct" | "wrong") {
+    setFlash(type);
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => setFlash(null), 400);
+  }
+
+  function handleKnow() {
+    const newStreak = streak + 1;
+    setStreak(newStreak);
+    triggerFlash("correct");
+    const msg = STREAK_MESSAGES[newStreak];
+    if (msg) {
+      setStreakMsg(msg);
+      if (msgTimer.current) clearTimeout(msgTimer.current);
+      msgTimer.current = setTimeout(() => setStreakMsg(null), 1200);
+    }
+    onKnow();
+  }
+
+  function handleDontKnow() {
+    setStreak(0);
+    triggerFlash("wrong");
+    onDontKnow();
+  }
 
   function speakWord() {
     if ("speechSynthesis" in window) {
@@ -51,18 +90,56 @@ export default function FlashCard({
   const shortEnglish = word.english.split(";")[0].split(",")[0].trim();
 
   return (
-    <div className="flex flex-col items-center gap-10 w-full py-8">
+    <div className="flex flex-col items-center gap-8 w-full">
 
-      {/* Counter — very quiet */}
-      <p className="text-xs tabular-nums self-end" style={{ color: "rgba(255,255,255,0.18)" }}>
-        {cardIndex + 1} / {totalCards}
-      </p>
+      {/* ── Streak + counter row ── */}
+      <div className="flex items-center justify-between w-full">
+        {/* Streak badge */}
+        <div className="flex items-center gap-2 h-7">
+          {streak >= 3 && (
+            <div
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all"
+              style={{
+                background: "rgba(255,255,255,0.08)",
+                color: "rgba(255,255,255,0.7)",
+                border: "1px solid rgba(255,255,255,0.12)",
+              }}
+            >
+              <span style={{ fontSize: "0.7rem" }}>🔥</span>
+              {streak}
+            </div>
+          )}
+          {streakMsg && (
+            <span
+              className="text-sm font-semibold animate-bounce"
+              style={{ color: "rgba(255,255,255,0.9)" }}
+            >
+              {streakMsg}
+            </span>
+          )}
+        </div>
 
-      {/* ── The word — maximum visual weight ── */}
+        {/* Counter */}
+        <p className="text-xs tabular-nums" style={{ color: "rgba(255,255,255,0.18)" }}>
+          {cardIndex + 1} / {totalCards}
+        </p>
+      </div>
+
+      {/* ── Flash overlay ── */}
+      <div
+        className="fixed inset-0 pointer-events-none transition-opacity duration-300"
+        style={{
+          opacity: flash ? 0.06 : 0,
+          background: flash === "correct" ? "#FFFFFF" : "#FF4444",
+          zIndex: 50,
+        }}
+      />
+
+      {/* ── The word ── */}
       <button
         onClick={() => { speakWord(); setRevealed(true); }}
-        className="text-center transition-opacity hover:opacity-80"
-        style={{ background: "none", border: "none" }}
+        className="text-center transition-opacity hover:opacity-75 active:opacity-50"
+        style={{ background: "none", border: "none", padding: 0 }}
         title="點擊朗讀"
       >
         <p
@@ -77,53 +154,50 @@ export default function FlashCard({
           {word.danish}
         </p>
         {word.pos && (
-          <p className="mt-2 text-sm" style={{ color: "rgba(255,255,255,0.25)", fontStyle: "italic" }}>
+          <p className="mt-2 text-sm" style={{ color: "rgba(255,255,255,0.22)", fontStyle: "italic" }}>
             {word.pos}
           </p>
         )}
       </button>
 
       {/* ── Answer area ── */}
-      <div className="flex flex-col items-center gap-3 min-h-[80px] justify-center">
+      <div className="flex flex-col items-center gap-2 min-h-[90px] justify-center">
         {revealed ? (
           <>
-            {/* Chinese — large, high contrast */}
             <p
               className="text-4xl font-bold text-center"
               style={{ fontFamily: "'Noto Sans TC', sans-serif", color: "#FFFFFF" }}
             >
               {word.chinese || shortEnglish}
             </p>
-            {/* English — muted secondary */}
             {word.chinese && (
-              <p className="text-sm italic text-center" style={{ color: "rgba(255,255,255,0.35)" }}>
+              <p className="text-sm italic text-center" style={{ color: "rgba(255,255,255,0.3)" }}>
                 {shortEnglish}
               </p>
             )}
-            {/* Links — very quiet */}
             <div className="flex items-center gap-5 mt-1">
               <a
                 href={`https://en.wiktionary.org/wiki/${encodeURIComponent(word.danish)}`}
                 target="_blank" rel="noopener noreferrer"
                 className="text-xs hover:underline"
-                style={{ color: "rgba(255,255,255,0.2)" }}
+                style={{ color: "rgba(255,255,255,0.18)" }}
               >Wiktionary</a>
               <a
                 href={`https://ordnet.dk/ddo/ordbog?query=${encodeURIComponent(word.danish)}`}
                 target="_blank" rel="noopener noreferrer"
                 className="text-xs hover:underline"
-                style={{ color: "rgba(255,255,255,0.2)" }}
+                style={{ color: "rgba(255,255,255,0.18)" }}
               >ordnet.dk</a>
             </div>
           </>
         ) : (
-          <p className="text-sm" style={{ color: "rgba(255,255,255,0.2)" }}>
+          <p className="text-sm select-none" style={{ color: "rgba(255,255,255,0.18)" }}>
             Space
           </p>
         )}
       </div>
 
-      {/* ── Judge buttons — only when revealed ── */}
+      {/* ── Judge buttons ── */}
       <div
         className={cn(
           "flex gap-3 w-full max-w-xs transition-opacity duration-150",
@@ -131,18 +205,18 @@ export default function FlashCard({
         )}
       >
         <button
-          onClick={onDontKnow}
+          onClick={handleDontKnow}
           className="flex-1 py-3 rounded-lg text-sm font-medium transition-colors"
           style={{
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            color: "rgba(255,255,255,0.45)",
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            color: "rgba(255,255,255,0.35)",
           }}
         >
           ← 不認識
         </button>
         <button
-          onClick={onKnow}
+          onClick={handleKnow}
           className="flex-1 py-3 rounded-lg text-sm font-medium transition-colors"
           style={{
             background: "rgba(255,255,255,0.08)",

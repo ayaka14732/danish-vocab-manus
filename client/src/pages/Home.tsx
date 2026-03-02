@@ -1,7 +1,7 @@
 // Home.tsx — ADHD-friendly
-// Near-black bg. Pure white focus. Nothing else competes.
+// Auto-hiding top bar. Vertically centered content. Pure black/white.
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   VOCABULARY,
   CATEGORIES,
@@ -44,6 +44,8 @@ export default function Home() {
   const [cardIndex, setCardIndex] = useState(0);
   const [deck, setDeck] = useState(() => shuffle(VOCABULARY));
   const [catOpen, setCatOpen] = useState(false);
+  const [headerVisible, setHeaderVisible] = useState(false);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { saveProgress(progress); }, [progress]);
 
@@ -52,6 +54,32 @@ export default function Home() {
     setDeck(shuffle(pool));
     setCardIndex(0);
   }, [category]);
+
+  // Auto-hide header: show on mouse near top (within 48px), hide after 2s idle
+  useEffect(() => {
+    function handleMouseMove(e: MouseEvent) {
+      if (e.clientY < 48) {
+        setHeaderVisible(true);
+        if (hideTimer.current) clearTimeout(hideTimer.current);
+        hideTimer.current = setTimeout(() => setHeaderVisible(false), 2000);
+      }
+    }
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
+  // Also show header on touch (mobile tap near top)
+  useEffect(() => {
+    function handleTouch(e: TouchEvent) {
+      if (e.touches[0]?.clientY < 60) {
+        setHeaderVisible(true);
+        if (hideTimer.current) clearTimeout(hideTimer.current);
+        hideTimer.current = setTimeout(() => setHeaderVisible(false), 3000);
+      }
+    }
+    window.addEventListener("touchstart", handleTouch);
+    return () => window.removeEventListener("touchstart", handleTouch);
+  }, []);
 
   const currentWord = deck[cardIndex % Math.max(deck.length, 1)];
 
@@ -78,16 +106,35 @@ export default function Home() {
   const catLabel = category === "all" ? "全部" : CATEGORIES[category as WordCategory]?.label;
   const poolSize = filteredWords.length;
 
+  // For non-flashcard tabs, show header always
+  const showHeader = headerVisible || tab !== "flashcard";
+
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#191919", color: "#FFFFFF" }}>
 
-      {/* ── Top bar ── */}
+      {/* ── Auto-hiding top bar ── */}
+      {/* Invisible trigger zone at the very top */}
+      <div className="fixed top-0 left-0 right-0 h-12 z-40" style={{ pointerEvents: "none" }} />
+
       <header
-        className="flex items-center justify-between px-5 py-3 shrink-0"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 py-3 transition-all duration-300"
+        style={{
+          background: "rgba(25,25,25,0.95)",
+          backdropFilter: "blur(8px)",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
+          transform: showHeader ? "translateY(0)" : "translateY(-100%)",
+          opacity: showHeader ? 1 : 0,
+        }}
+        onMouseEnter={() => {
+          setHeaderVisible(true);
+          if (hideTimer.current) clearTimeout(hideTimer.current);
+        }}
+        onMouseLeave={() => {
+          hideTimer.current = setTimeout(() => setHeaderVisible(false), 1500);
+        }}
       >
         {/* App name */}
-        <span className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'Lora', serif" }}>
+        <span className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.25)", fontFamily: "'Lora', serif" }}>
           Dansk Ordbog
         </span>
 
@@ -97,13 +144,10 @@ export default function Home() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={cn(
-                "px-3.5 py-1.5 rounded-md text-sm transition-colors",
-                tab === t.id ? "font-semibold" : "font-normal"
-              )}
+              className={cn("px-3.5 py-1.5 rounded-md text-sm transition-colors")}
               style={
                 tab === t.id
-                  ? { background: "rgba(255,255,255,0.1)", color: "#FFFFFF" }
+                  ? { background: "rgba(255,255,255,0.1)", color: "#FFFFFF", fontWeight: 600 }
                   : { color: "rgba(255,255,255,0.3)" }
               }
             >
@@ -131,15 +175,15 @@ export default function Home() {
                   background: "#242424",
                   border: "1px solid rgba(255,255,255,0.08)",
                   minWidth: "160px",
-                  boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.7)",
                 }}
               >
                 <button
                   onClick={() => { setCategory("all"); setCatOpen(false); }}
                   className="w-full text-left px-4 py-2 text-sm transition-colors hover:bg-white/5"
-                  style={{ color: category === "all" ? "#FFFFFF" : "rgba(255,255,255,0.45)" }}
+                  style={{ color: category === "all" ? "#FFFFFF" : "rgba(255,255,255,0.4)" }}
                 >
-                  全部 <span className="float-right" style={{ color: "rgba(255,255,255,0.2)" }}>{VOCABULARY.length}</span>
+                  全部 <span className="float-right" style={{ color: "rgba(255,255,255,0.18)" }}>{VOCABULARY.length}</span>
                 </button>
                 {(Object.entries(CATEGORIES) as [WordCategory, typeof CATEGORIES[WordCategory]][]).map(([key, cat]) => {
                   const count = VOCABULARY.filter((w) => w.category === key).length;
@@ -148,9 +192,9 @@ export default function Home() {
                       key={key}
                       onClick={() => { setCategory(key); setCatOpen(false); }}
                       className="w-full text-left px-4 py-2 text-sm transition-colors hover:bg-white/5"
-                      style={{ color: category === key ? "#FFFFFF" : "rgba(255,255,255,0.45)" }}
+                      style={{ color: category === key ? "#FFFFFF" : "rgba(255,255,255,0.4)" }}
                     >
-                      {cat.label} <span className="float-right" style={{ color: "rgba(255,255,255,0.2)" }}>{count}</span>
+                      {cat.label} <span className="float-right" style={{ color: "rgba(255,255,255,0.18)" }}>{count}</span>
                     </button>
                   );
                 })}
@@ -160,9 +204,19 @@ export default function Home() {
         </div>
       </header>
 
-      {/* ── Content ── */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-xl mx-auto px-6 py-6">
+      {/* ── Content — vertically centered for flashcard ── */}
+      <main
+        className="flex-1 flex"
+        style={
+          tab === "flashcard"
+            ? { alignItems: "center", justifyContent: "center", minHeight: "100vh" }
+            : { paddingTop: "4rem" }
+        }
+      >
+        <div
+          className="w-full px-6"
+          style={{ maxWidth: tab === "wordlist" || tab === "stats" ? "640px" : "480px", margin: "0 auto" }}
+        >
           {tab === "flashcard" && currentWord && (
             <FlashCard
               word={currentWord}
@@ -185,12 +239,12 @@ export default function Home() {
       </main>
 
       {/* ── Bottom progress strip ── */}
-      <div className="h-px shrink-0" style={{ background: "rgba(255,255,255,0.05)" }}>
+      <div className="fixed bottom-0 left-0 right-0 h-px z-40" style={{ background: "rgba(255,255,255,0.05)" }}>
         <div
           className="h-full transition-all duration-700"
           style={{
             width: `${Math.round((knownCount / VOCABULARY.length) * 100)}%`,
-            background: "rgba(255,255,255,0.4)",
+            background: "rgba(255,255,255,0.35)",
           }}
         />
       </div>
