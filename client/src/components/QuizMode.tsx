@@ -1,5 +1,5 @@
-// QuizMode.tsx — ADHD-friendly
-// Clean multiple choice. No decorative icons.
+// QuizMode.tsx — ADHD-friendly, monochrome
+// Clean multiple choice. No decorative elements.
 
 import { useState, useEffect, useCallback } from "react";
 import { VocabWord, VOCABULARY, WordCategory } from "@/lib/vocabulary";
@@ -68,7 +68,7 @@ export default function QuizMode({ category, onComplete }: QuizModeProps) {
         setCurrent((c) => c + 1);
         setSelected(null);
       }
-    }, 1000);
+    }, 900);
   }
 
   if (questions.length === 0) return null;
@@ -76,17 +76,24 @@ export default function QuizMode({ category, onComplete }: QuizModeProps) {
   if (finished) {
     const pct = Math.round((correct / questions.length) * 100);
     return (
-      <div className="flex flex-col items-center gap-6 py-12 text-center">
-        <p className="text-6xl font-bold" style={{ fontFamily: "'Lora', serif", color: "#C9A84C" }}>
+      <div className="flex flex-col items-center gap-6 py-16 text-center">
+        <p
+          className="font-bold"
+          style={{ fontFamily: "'Lora', serif", fontSize: "5rem", lineHeight: 1, color: "#FFFFFF" }}
+        >
           {pct}%
         </p>
-        <p style={{ color: "rgba(232,228,220,0.5)" }}>
+        <p style={{ color: "rgba(255,255,255,0.35)", fontSize: "0.875rem" }}>
           {correct} / {questions.length} 題答對
         </p>
         <button
           onClick={init}
-          className="px-6 py-2.5 rounded-lg text-sm font-medium"
-          style={{ background: "rgba(201,168,76,0.15)", border: "1px solid rgba(201,168,76,0.3)", color: "#C9A84C" }}
+          className="px-6 py-2.5 rounded-lg text-sm font-medium mt-2"
+          style={{
+            background: "rgba(255,255,255,0.08)",
+            border: "1px solid rgba(255,255,255,0.15)",
+            color: "#FFFFFF",
+          }}
         >
           再測一次
         </button>
@@ -97,52 +104,68 @@ export default function QuizMode({ category, onComplete }: QuizModeProps) {
   const q = questions[current];
 
   return (
-    <div className="flex flex-col gap-5 w-full">
+    <div className="flex flex-col gap-8 w-full py-4">
 
       {/* Counter */}
-      <p className="text-right text-xs tabular-nums" style={{ color: "rgba(232,228,220,0.25)" }}>
+      <p className="text-right text-xs tabular-nums" style={{ color: "rgba(255,255,255,0.18)" }}>
         {current + 1} / {questions.length}
       </p>
 
-      {/* Question card */}
-      <div
-        className="parchment-card rounded-2xl gold-border p-8 text-center"
-        style={{ minHeight: "160px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}
-      >
-        <p className="text-5xl font-bold" style={{ fontFamily: "'Lora', serif", color: "#1A1A0E" }}>
+      {/* Question — the word, large */}
+      <div className="text-center py-6">
+        <p
+          className="font-bold leading-none"
+          style={{
+            fontFamily: "'Lora', serif",
+            fontSize: "clamp(2.5rem, 8vw, 4.5rem)",
+            color: "#FFFFFF",
+            letterSpacing: "-0.02em",
+          }}
+        >
           {q.word.danish}
         </p>
         {q.word.pos && (
-          <p className="text-sm italic mt-1" style={{ color: "#8B7355" }}>{q.word.pos}</p>
+          <p className="mt-2 text-sm italic" style={{ color: "rgba(255,255,255,0.22)" }}>
+            {q.word.pos}
+          </p>
         )}
       </div>
 
       {/* External links — after answering */}
       {selected !== null && (
-        <div className="flex justify-end gap-5">
+        <div className="flex justify-center gap-6">
           <a href={`https://en.wiktionary.org/wiki/${encodeURIComponent(q.word.danish)}`}
             target="_blank" rel="noopener noreferrer"
-            className="text-xs hover:underline" style={{ color: "rgba(201,168,76,0.5)" }}>
+            className="text-xs hover:underline" style={{ color: "rgba(255,255,255,0.2)" }}>
             Wiktionary
           </a>
           <a href={`https://ordnet.dk/ddo/ordbog?query=${encodeURIComponent(q.word.danish)}`}
             target="_blank" rel="noopener noreferrer"
-            className="text-xs hover:underline" style={{ color: "rgba(201,168,76,0.5)" }}>
+            className="text-xs hover:underline" style={{ color: "rgba(255,255,255,0.2)" }}>
             ordnet.dk
           </a>
         </div>
       )}
 
       {/* Options */}
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-2 gap-2">
         {q.options.map((opt, idx) => {
-          let bg = "rgba(232,228,220,0.05)";
-          let border = "rgba(232,228,220,0.1)";
-          let color = "#E8E4DC";
+          let bg = "rgba(255,255,255,0.04)";
+          let border = "rgba(255,255,255,0.08)";
+          let color = "rgba(255,255,255,0.7)";
+
           if (selected !== null) {
-            if (idx === q.correctIndex) { bg = "rgba(70,150,90,0.15)"; border = "rgba(70,150,90,0.4)"; color = "#80C898"; }
-            else if (idx === selected) { bg = "rgba(180,60,40,0.15)"; border = "rgba(180,60,40,0.4)"; color = "#C07868"; }
+            if (idx === q.correctIndex) {
+              bg = "rgba(255,255,255,0.1)";
+              border = "rgba(255,255,255,0.5)";
+              color = "#FFFFFF";
+            } else if (idx === selected) {
+              bg = "rgba(255,255,255,0.02)";
+              border = "rgba(255,255,255,0.06)";
+              color = "rgba(255,255,255,0.25)";
+            }
           }
+
           return (
             <button
               key={idx}
@@ -154,7 +177,7 @@ export default function QuizMode({ category, onComplete }: QuizModeProps) {
               )}
               style={{ background: bg, border: `1px solid ${border}`, color }}
             >
-              <span className="text-xs mr-2" style={{ opacity: 0.4 }}>{["A","B","C","D"][idx]}.</span>
+              <span className="text-xs mr-2" style={{ opacity: 0.3 }}>{["A","B","C","D"][idx]}.</span>
               {opt}
             </button>
           );

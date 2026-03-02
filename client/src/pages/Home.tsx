@@ -1,5 +1,5 @@
-// Home.tsx — ADHD-friendly design
-// Principles: one thing at a time, no decorative noise, clear hierarchy, minimal chrome
+// Home.tsx — ADHD-friendly
+// Near-black bg. Pure white focus. Nothing else competes.
 
 import { useState, useMemo, useEffect } from "react";
 import {
@@ -74,56 +74,52 @@ export default function Home() {
     toast.success(`答對 ${correct}/${total} 題`);
   }
 
-  function handleShuffle() {
-    const pool = category === "all" ? VOCABULARY : VOCABULARY.filter((w) => w.category === category);
-    setDeck(shuffle(pool));
-    setCardIndex(0);
-  }
-
   const knownCount = Object.values(progress.words).filter((w) => w.known).length;
   const catLabel = category === "all" ? "全部" : CATEGORIES[category as WordCategory]?.label;
   const poolSize = filteredWords.length;
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "#111612", color: "#E8E4DC" }}>
+    <div className="min-h-screen flex flex-col" style={{ background: "#191919", color: "#FFFFFF" }}>
 
       {/* ── Top bar ── */}
       <header
-        className="flex items-center justify-between px-5 py-3 border-b shrink-0"
-        style={{ borderColor: "rgba(255,255,255,0.07)" }}
+        className="flex items-center justify-between px-5 py-3 shrink-0"
+        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
       >
-        {/* Left: app name */}
-        <span className="text-sm font-semibold tracking-wide" style={{ fontFamily: "'Lora', serif", color: "#C9A84C" }}>
+        {/* App name */}
+        <span className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'Lora', serif" }}>
           Dansk Ordbog
         </span>
 
-        {/* Center: mode tabs */}
-        <nav className="flex items-center gap-1">
+        {/* Mode tabs */}
+        <nav className="flex items-center gap-0.5">
           {TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
               className={cn(
-                "px-3 py-1.5 rounded-md text-sm transition-colors",
-                tab === t.id
-                  ? "font-semibold"
-                  : "font-normal opacity-40 hover:opacity-70"
+                "px-3.5 py-1.5 rounded-md text-sm transition-colors",
+                tab === t.id ? "font-semibold" : "font-normal"
               )}
-              style={tab === t.id ? { background: "rgba(201,168,76,0.15)", color: "#C9A84C" } : { color: "#E8E4DC" }}
+              style={
+                tab === t.id
+                  ? { background: "rgba(255,255,255,0.1)", color: "#FFFFFF" }
+                  : { color: "rgba(255,255,255,0.3)" }
+              }
             >
               {t.label}
             </button>
           ))}
         </nav>
 
-        {/* Right: category picker */}
+        {/* Category picker */}
         <div className="relative">
           <button
             onClick={() => setCatOpen((o) => !o)}
             className="text-sm px-3 py-1.5 rounded-md transition-colors hover:bg-white/5"
-            style={{ color: "rgba(232,228,220,0.5)", fontVariantNumeric: "tabular-nums" }}
+            style={{ color: "rgba(255,255,255,0.3)" }}
           >
-            {catLabel} <span style={{ color: "rgba(232,228,220,0.25)" }}>{poolSize}</span>
+            {catLabel} <span style={{ color: "rgba(255,255,255,0.15)" }}>{poolSize}</span>
           </button>
 
           {catOpen && (
@@ -132,18 +128,18 @@ export default function Home() {
               <div
                 className="absolute right-0 top-full mt-1 z-20 rounded-xl overflow-hidden py-1"
                 style={{
-                  background: "#1A2018",
-                  border: "1px solid rgba(255,255,255,0.1)",
+                  background: "#242424",
+                  border: "1px solid rgba(255,255,255,0.08)",
                   minWidth: "160px",
-                  boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
                 }}
               >
                 <button
                   onClick={() => { setCategory("all"); setCatOpen(false); }}
-                  className={cn("w-full text-left px-4 py-2 text-sm transition-colors hover:bg-white/5", category === "all" && "font-semibold")}
-                  style={{ color: category === "all" ? "#C9A84C" : "rgba(232,228,220,0.7)" }}
+                  className="w-full text-left px-4 py-2 text-sm transition-colors hover:bg-white/5"
+                  style={{ color: category === "all" ? "#FFFFFF" : "rgba(255,255,255,0.45)" }}
                 >
-                  全部 <span className="float-right opacity-40">{VOCABULARY.length}</span>
+                  全部 <span className="float-right" style={{ color: "rgba(255,255,255,0.2)" }}>{VOCABULARY.length}</span>
                 </button>
                 {(Object.entries(CATEGORIES) as [WordCategory, typeof CATEGORIES[WordCategory]][]).map(([key, cat]) => {
                   const count = VOCABULARY.filter((w) => w.category === key).length;
@@ -151,10 +147,10 @@ export default function Home() {
                     <button
                       key={key}
                       onClick={() => { setCategory(key); setCatOpen(false); }}
-                      className={cn("w-full text-left px-4 py-2 text-sm transition-colors hover:bg-white/5", category === key && "font-semibold")}
-                      style={{ color: category === key ? "#C9A84C" : "rgba(232,228,220,0.7)" }}
+                      className="w-full text-left px-4 py-2 text-sm transition-colors hover:bg-white/5"
+                      style={{ color: category === key ? "#FFFFFF" : "rgba(255,255,255,0.45)" }}
                     >
-                      {cat.label} <span className="float-right opacity-40">{count}</span>
+                      {cat.label} <span className="float-right" style={{ color: "rgba(255,255,255,0.2)" }}>{count}</span>
                     </button>
                   );
                 })}
@@ -166,13 +162,12 @@ export default function Home() {
 
       {/* ── Content ── */}
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto px-4 py-8">
+        <div className="max-w-xl mx-auto px-6 py-6">
           {tab === "flashcard" && currentWord && (
             <FlashCard
               word={currentWord}
               onKnow={handleKnow}
               onDontKnow={handleDontKnow}
-              onShuffle={handleShuffle}
               cardIndex={cardIndex}
               totalCards={deck.length}
             />
@@ -190,15 +185,12 @@ export default function Home() {
       </main>
 
       {/* ── Bottom progress strip ── */}
-      <div
-        className="h-0.5 shrink-0"
-        style={{ background: "rgba(255,255,255,0.06)" }}
-      >
+      <div className="h-px shrink-0" style={{ background: "rgba(255,255,255,0.05)" }}>
         <div
           className="h-full transition-all duration-700"
           style={{
             width: `${Math.round((knownCount / VOCABULARY.length) * 100)}%`,
-            background: "#C9A84C",
+            background: "rgba(255,255,255,0.4)",
           }}
         />
       </div>

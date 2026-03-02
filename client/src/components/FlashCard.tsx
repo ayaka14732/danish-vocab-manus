@@ -1,6 +1,5 @@
-// FlashCard.tsx — ADHD-friendly
-// One word at a time. No decorative chrome.
-// Space/click → reveal. ← → to judge.
+// FlashCard.tsx — ADHD-friendly, no card chrome
+// One word, full focus. Space to reveal. ← → to judge.
 
 import { useState, useEffect } from "react";
 import { VocabWord } from "@/lib/vocabulary";
@@ -52,106 +51,108 @@ export default function FlashCard({
   const shortEnglish = word.english.split(";")[0].split(",")[0].trim();
 
   return (
-    <div className="flex flex-col gap-5 w-full">
+    <div className="flex flex-col items-center gap-10 w-full py-8">
 
-      {/* Counter — minimal, top right */}
-      <p className="text-right text-xs tabular-nums" style={{ color: "rgba(232,228,220,0.25)" }}>
+      {/* Counter — very quiet */}
+      <p className="text-xs tabular-nums self-end" style={{ color: "rgba(255,255,255,0.18)" }}>
         {cardIndex + 1} / {totalCards}
       </p>
 
-      {/* Card */}
-      <div
-        className="parchment-card rounded-2xl gold-border w-full cursor-pointer select-none"
-        style={{ minHeight: "280px" }}
-        onClick={() => !revealed && setRevealed(true)}
+      {/* ── The word — maximum visual weight ── */}
+      <button
+        onClick={() => { speakWord(); setRevealed(true); }}
+        className="text-center transition-opacity hover:opacity-80"
+        style={{ background: "none", border: "none" }}
+        title="點擊朗讀"
       >
-        {/* Danish word */}
-        <div className="flex flex-col items-center justify-center px-8 pt-10 pb-4">
-          <button
-            onClick={(e) => { e.stopPropagation(); speakWord(); }}
-            className="text-5xl font-bold text-center mb-1 hover:opacity-80 transition-opacity"
-            style={{ fontFamily: "'Lora', serif", color: "#1A1A0E", background: "none", border: "none", cursor: "pointer" }}
-            title="點擊朗讀"
-          >
-            {word.danish}
-          </button>
-          {word.pos && (
-            <p className="text-sm italic" style={{ color: "#8B7355" }}>
-              {word.pos}
+        <p
+          className="font-bold leading-none tracking-tight"
+          style={{
+            fontFamily: "'Lora', serif",
+            fontSize: "clamp(3rem, 10vw, 6rem)",
+            color: "#FFFFFF",
+            letterSpacing: "-0.02em",
+          }}
+        >
+          {word.danish}
+        </p>
+        {word.pos && (
+          <p className="mt-2 text-sm" style={{ color: "rgba(255,255,255,0.25)", fontStyle: "italic" }}>
+            {word.pos}
+          </p>
+        )}
+      </button>
+
+      {/* ── Answer area ── */}
+      <div className="flex flex-col items-center gap-3 min-h-[80px] justify-center">
+        {revealed ? (
+          <>
+            {/* Chinese — large, high contrast */}
+            <p
+              className="text-4xl font-bold text-center"
+              style={{ fontFamily: "'Noto Sans TC', sans-serif", color: "#FFFFFF" }}
+            >
+              {word.chinese || shortEnglish}
             </p>
-          )}
-        </div>
-
-        {/* Divider */}
-        <div style={{ height: "1px", background: "rgba(139,115,85,0.2)", margin: "0 2.5rem" }} />
-
-        {/* Answer */}
-        <div className="flex flex-col items-center justify-center px-8 py-8" style={{ minHeight: "110px" }}>
-          {revealed ? (
-            <div className="flex flex-col items-center gap-1.5 w-full">
-              <p
-                className="text-3xl font-bold text-center"
-                style={{ fontFamily: "'Noto Sans TC', sans-serif", color: "#1A1A0E" }}
-              >
-                {word.chinese || shortEnglish}
-              </p>
-              <p className="text-sm italic text-center" style={{ color: "#7A6A50" }}>
+            {/* English — muted secondary */}
+            {word.chinese && (
+              <p className="text-sm italic text-center" style={{ color: "rgba(255,255,255,0.35)" }}>
                 {shortEnglish}
               </p>
-              <div className="flex items-center gap-5 mt-3">
-                <a
-                  href={`https://en.wiktionary.org/wiki/${encodeURIComponent(word.danish)}`}
-                  target="_blank" rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-xs hover:underline"
-                  style={{ color: "rgba(139,115,85,0.55)" }}
-                >Wiktionary</a>
-                <a
-                  href={`https://ordnet.dk/ddo/ordbog?query=${encodeURIComponent(word.danish)}`}
-                  target="_blank" rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-xs hover:underline"
-                  style={{ color: "rgba(139,115,85,0.55)" }}
-                >ordnet.dk</a>
-              </div>
+            )}
+            {/* Links — very quiet */}
+            <div className="flex items-center gap-5 mt-1">
+              <a
+                href={`https://en.wiktionary.org/wiki/${encodeURIComponent(word.danish)}`}
+                target="_blank" rel="noopener noreferrer"
+                className="text-xs hover:underline"
+                style={{ color: "rgba(255,255,255,0.2)" }}
+              >Wiktionary</a>
+              <a
+                href={`https://ordnet.dk/ddo/ordbog?query=${encodeURIComponent(word.danish)}`}
+                target="_blank" rel="noopener noreferrer"
+                className="text-xs hover:underline"
+                style={{ color: "rgba(255,255,255,0.2)" }}
+              >ordnet.dk</a>
             </div>
-          ) : (
-            <p className="text-sm" style={{ color: "rgba(139,115,85,0.6)" }}>
-              按 <kbd className="px-1.5 py-0.5 rounded font-mono text-xs" style={{ background: "rgba(139,115,85,0.15)" }}>Space</kbd> 顯示答案
-            </p>
-          )}
-        </div>
+          </>
+        ) : (
+          <p className="text-sm" style={{ color: "rgba(255,255,255,0.2)" }}>
+            Space
+          </p>
+        )}
       </div>
 
-      {/* Judge buttons */}
+      {/* ── Judge buttons — only when revealed ── */}
       <div
         className={cn(
-          "flex gap-3 transition-opacity duration-150",
+          "flex gap-3 w-full max-w-xs transition-opacity duration-150",
           revealed ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
       >
         <button
           onClick={onDontKnow}
-          className="flex-1 py-3 rounded-xl text-sm font-medium transition-colors"
-          style={{ background: "rgba(200,70,50,0.1)", border: "1px solid rgba(200,70,50,0.25)", color: "#D06858" }}
+          className="flex-1 py-3 rounded-lg text-sm font-medium transition-colors"
+          style={{
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            color: "rgba(255,255,255,0.45)",
+          }}
         >
-          不認識
+          ← 不認識
         </button>
         <button
           onClick={onKnow}
-          className="flex-1 py-3 rounded-xl text-sm font-medium transition-colors"
-          style={{ background: "rgba(70,150,90,0.1)", border: "1px solid rgba(70,150,90,0.25)", color: "#60A878" }}
+          className="flex-1 py-3 rounded-lg text-sm font-medium transition-colors"
+          style={{
+            background: "rgba(255,255,255,0.08)",
+            border: "1px solid rgba(255,255,255,0.18)",
+            color: "rgba(255,255,255,0.85)",
+          }}
         >
-          認識了
+          認識了 →
         </button>
       </div>
-
-      {/* Keyboard hint — very quiet */}
-      {revealed && (
-        <p className="text-center text-xs" style={{ color: "rgba(232,228,220,0.18)" }}>
-          ← 不認識 · → 認識了
-        </p>
-      )}
     </div>
   );
 }
