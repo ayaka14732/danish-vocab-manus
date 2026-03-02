@@ -215,7 +215,7 @@ export default function Home() {
       >
         <div
           className="w-full px-6"
-          style={{ maxWidth: tab === "wordlist" || tab === "stats" ? "640px" : "480px", margin: "0 auto" }}
+          style={{ maxWidth: tab === "wordlist" || tab === "stats" ? "720px" : "680px", margin: "0 auto" }}
         >
           {tab === "flashcard" && currentWord && (
             <FlashCard
