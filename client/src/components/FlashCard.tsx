@@ -38,6 +38,8 @@ export default function FlashCard({
   const [streakMsg, setStreakMsg] = useState<string | null>(null);
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const msgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Remember last flash color so the fade-out doesn't switch to wrong color
+  const lastFlashColor = useRef<string>("#44FF88");
 
   // Reset card when word changes
   useEffect(() => {
@@ -58,14 +60,11 @@ export default function FlashCard({
   }, [revealed, streak]);
 
   function triggerFlash(type: "correct" | "wrong") {
-    // Clear any existing flash first so they never overlap
-    setFlash(null);
+    const color = type === "correct" ? "#44FF88" : "#FF4444";
+    lastFlashColor.current = color;
     if (flashTimer.current) clearTimeout(flashTimer.current);
-    // Small delay to allow state reset before new flash
-    requestAnimationFrame(() => {
-      setFlash(type);
-      flashTimer.current = setTimeout(() => setFlash(null), 350);
-    });
+    setFlash(type);
+    flashTimer.current = setTimeout(() => setFlash(null), 350);
   }
 
   function handleKnow() {
@@ -133,7 +132,7 @@ export default function FlashCard({
         className="fixed inset-0 pointer-events-none"
         style={{
           opacity: flash ? 0.07 : 0,
-          background: flash === "correct" ? "#44FF88" : "#FF4444",
+          background: lastFlashColor.current,
           transition: flash ? "opacity 0.05s ease-in" : "opacity 0.3s ease-out",
           zIndex: 50,
         }}
